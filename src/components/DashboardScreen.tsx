@@ -20,6 +20,7 @@ import {
   Home,
   Hammer,
 } from 'lucide-react';
+import { DailyMissionsCard } from './DailyMissionsCard';
 
 interface DashboardScreenProps {
   player: PlayerProfile;
@@ -39,6 +40,8 @@ interface DashboardScreenProps {
   onOpenQuestionHistory: () => void;
   onOpenSettings: () => void;
   onSaveAndExit: () => void;
+  onBackToHome?: () => void;
+  onClaimDailyReward?: (coins: number, xp: number, diamonds?: number) => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -59,6 +62,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenQuestionHistory,
   onOpenSettings,
   onSaveAndExit,
+  onBackToHome,
+  onClaimDailyReward,
 }) => {
   const hero = getHeroById(player.selectedCharacterId);
   const rankInfo = getRankInfo(player.rank);
@@ -99,8 +104,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </div>
           </div>
 
-          {/* Quick Wallet Info */}
+          {/* Quick Wallet Info & Back to Home */}
           <div className="flex items-center gap-2.5">
+            {onBackToHome && (
+              <button
+                onClick={() => {
+                  soundManager.playBeep(480, 0.04);
+                  onBackToHome();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 rounded-xl text-xs font-semibold transition cursor-pointer"
+                title="Return to Home Screen"
+              >
+                <Home className="w-3.5 h-3.5 text-amber-400" />
+                <span>Home</span>
+              </button>
+            )}
+
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900/90 border border-neutral-800 rounded-xl text-xs font-mono-code">
               <Coins className="w-4 h-4 text-yellow-400" />
               <span className="font-bold text-yellow-300">{player.coins} Coins</span>
@@ -214,7 +233,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <div className="text-base font-bold font-mono-code text-rose-400">
               Easy · Medium · Hard
             </div>
-            <div className="text-[10px] text-neutral-500">10Q Easy · 3Q Med · 2Q Hard</div>
+            <div className="text-[10px] text-neutral-500">3Q Easy · 2Q Med · 2Q Hard (7 Total)</div>
           </div>
         </div>
 
@@ -251,6 +270,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </button>
           </div>
         )}
+
+        {/* DAILY MISSIONS DECK */}
+        <DailyMissionsCard
+          onClaimReward={(coins, xp, diamonds) => {
+            if (onClaimDailyReward) {
+              onClaimDailyReward(coins, xp, diamonds);
+            }
+          }}
+          onNavigateToGame={onStartGame}
+          onNavigateToShelter={onOpenHomeBuilder}
+        />
 
         {/* 10 Dashboard Action Buttons Grid */}
         <div className="flex flex-col gap-3">

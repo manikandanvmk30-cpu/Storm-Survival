@@ -16,6 +16,7 @@ import {
 } from '../types/game';
 import { HEROES, getHeroById } from '../data/characters';
 import { getQuestionsForLevel } from '../data/all50LevelsData';
+import { trackDailyMissionProgress } from '../data/dailyMissions';
 import { soundManager } from '../services/audio';
 import { HomeBuilderModal } from './HomeBuilderModal';
 import { LevelCompleteModal } from './LevelCompleteModal';
@@ -621,6 +622,7 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
             setPhase('aftermath');
             soundManager.playSuccess();
             respawnAftermathSupplies();
+            trackDailyMissionProgress('storm_survived', 1);
 
             // Track Storm Rescue: "if i build 5 home and rescue from storm 2 times .promote to next level"
             setRescuedFromStormCount(prevRescues => {
@@ -2001,21 +2003,31 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
       `🎉 QUIZ CLEARED! Collected ${node.name} + Home Materials (Wood, Rope, Electronics)!`
     );
 
-    // 4. Check Level Completion (every 3 cache questions cleared advances to next level!)
+    // Track Daily Missions
+    trackDailyMissionProgress('questions_answered', 1);
+    if (activeQuizQuestion?.subject === 'mathematics') {
+      trackDailyMissionProgress('math_solved', 1);
+    } else if (activeQuizQuestion?.subject === 'science') {
+      trackDailyMissionProgress('science_solved', 1);
+    }
+    trackDailyMissionProgress('supplies_gathered', 1);
+
+    // 4. Check Level Completion (all 7 curriculum questions cleared advances to next level!)
     const nextSolved = levelSolvedCount + 1;
     setLevelSolvedCount(nextSolved);
 
     setPendingQuizNode(null);
     setActiveQuizQuestion(null);
 
-    if (nextSolved >= 3) {
+    if (nextSolved >= 7) {
+      trackDailyMissionProgress('level_completed', 1);
       // Trigger Level Finished Modal!
       setLastEarnedMaterials({
-        wood: 6,
-        rope: 4,
-        lights: 2,
-        electronics: 1,
-        bricks: 4,
+        wood: 10,
+        rope: 6,
+        lights: 4,
+        electronics: 2,
+        bricks: 8,
       });
       setShowLevelCompleteModal(true);
       soundManager.playSuccess();
@@ -2171,7 +2183,7 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono-code">
             <Award className="w-3.5 h-3.5" />
             <span>
-              Level <strong className="text-white">{currentLevel}</strong> / 50 · ({levelSolvedCount}/3 Quizzes)
+              Level <strong className="text-white">{currentLevel}</strong> / 50 · ({levelSolvedCount}/7 Questions)
             </span>
           </div>
 
@@ -2478,8 +2490,8 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
             </button>
           </div>
 
-          {/* Evacuation Beacon Parts Overlay */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1 pointer-events-none text-xs">
+          {/* Evacuation Beacon Parts & 7 Questions Overlay */}
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5 pointer-events-none text-xs">
             <div className="px-3 py-1.5 rounded-xl bg-neutral-900/80 border border-neutral-800 backdrop-blur-md flex items-center gap-2 text-neutral-300">
               <Radio className="w-3.5 h-3.5 text-cyan-400" />
               <span>Rescue Parts:</span>
@@ -2492,6 +2504,20 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
               <span className={inventory.beaconParts.flare ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>
                 🚨 Flare
               </span>
+            </div>
+
+            {/* 7 Curriculum Questions Tracker for Level */}
+            <div className="px-3 py-1.5 rounded-xl bg-neutral-900/85 border border-amber-500/30 backdrop-blur-md flex items-center justify-between gap-2 text-neutral-200">
+              <span className="font-bold text-amber-300">Level {currentLevel} Questions:</span>
+              <span className="font-mono-code font-bold text-white">
+                {levelSolvedCount} / 7
+              </span>
+              <div className="w-16 bg-neutral-800 h-2 rounded-full overflow-hidden border border-neutral-700">
+                <div
+                  className="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, (levelSolvedCount / 7) * 100)}%` }}
+                />
+              </div>
             </div>
           </div>
 

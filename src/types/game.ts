@@ -55,6 +55,23 @@ export interface PlayerProfile {
   totalCorrectAnswers: number;
   answeredQuestionIds: string[];
   completedLevels: number[]; // e.g. [1, 2, ...]
+  dailyMissionStreak?: number;
+  lastMissionDate?: string;
+  dailySuperChestClaimed?: boolean;
+}
+
+export interface DailyMission {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'quiz' | 'survival' | 'building' | 'gathering';
+  target: number;
+  progress: number;
+  rewardCoins: number;
+  rewardXp: number;
+  completed: boolean;
+  claimed: boolean;
 }
 
 export type RankTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Earth Legend';

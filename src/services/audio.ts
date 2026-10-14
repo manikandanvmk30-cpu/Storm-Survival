@@ -154,6 +154,44 @@ class SoundManager {
     }
   }
 
+  // Fanfare for Super Chest & Major Level Milestones
+  public playFanfare() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const chords = [
+        [523.25, 659.25], // C5, E5
+        [587.33, 698.46], // D5, F5
+        [659.25, 783.99], // E5, G5
+        [783.99, 1046.5], // G5, C6
+      ];
+      chords.forEach((chord, i) => {
+        chord.forEach(f => {
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const time = this.ctx.currentTime + i * 0.12;
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, time);
+
+          gain.gain.setValueAtTime(0.08, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(time);
+          osc.stop(time + 0.5);
+        });
+      });
+    } catch {
+      // fallback
+    }
+  }
+
   // Failure buzzer
   public playFailure() {
     if (this.isMuted) return;

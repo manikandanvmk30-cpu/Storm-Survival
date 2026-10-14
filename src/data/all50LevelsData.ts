@@ -1,1211 +1,495 @@
 import { LevelQuestion, Difficulty, QuestionSubject } from '../types/game';
 
-// The answer key provided by the user for all 50 levels (A=0, B=1, C=2, D=3)
+// Answer keys for all 50 levels (7 questions per level, values 0-3 for options A, B, C, D)
 export const RAW_ANSWER_KEYS: Record<number, number[]> = {
-  1: [1, 0, 1, 1, 0, 0, 1, 2, 1, 0, 1, 1, 1, 0, 0],
-  2: [1, 2, 1, 1, 1, 0, 2, 1, 1, 2, 0, 2, 0, 0, 0],
-  3: [1, 1, 2, 3, 2, 0, 2, 1, 2, 0, 1, 2, 1, 0, 0],
-  4: [0, 0, 2, 0, 0, 0, 2, 2, 2, 1, 0, 2, 0, 0, 0],
-  5: [2, 0, 1, 1, 0, 0, 2, 3, 1, 1, 1, 1, 2, 0, 0],
-  6: [1, 1, 1, 2, 3, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0],
-  7: [0, 1, 3, 1, 0, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0],
-  8: [0, 1, 0, 1, 0, 0, 1, 2, 2, 2, 1, 2, 1, 0, 0],
-  9: [1, 1, 1, 2, 1, 0, 2, 2, 0, 1, 0, 2, 0, 0, 0],
-  10: [1, 1, 2, 2, 1, 0, 3, 2, 1, 1, 1, 1, 2, 0, 0],
-  11: [1, 0, 1, 1, 0, 0, 1, 2, 1, 0, 1, 1, 1, 0, 0],
-  12: [1, 2, 1, 1, 0, 0, 2, 1, 1, 2, 0, 2, 0, 0, 0],
-  13: [1, 1, 2, 3, 2, 0, 2, 1, 2, 0, 1, 2, 1, 0, 0],
-  14: [0, 0, 2, 0, 0, 0, 2, 2, 2, 1, 0, 2, 0, 0, 0],
-  15: [2, 0, 1, 1, 0, 0, 2, 3, 1, 1, 1, 1, 2, 0, 0],
-  16: [1, 1, 1, 2, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0],
-  17: [0, 1, 3, 1, 3, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0],
-  18: [0, 1, 0, 1, 0, 0, 1, 2, 2, 2, 1, 2, 1, 0, 0],
-  19: [1, 1, 1, 2, 0, 0, 2, 2, 0, 1, 0, 2, 0, 0, 0],
-  20: [1, 1, 2, 2, 2, 0, 3, 2, 1, 1, 1, 1, 2, 0, 0],
-  21: [1, 0, 1, 1, 0, 0, 1, 2, 1, 0, 1, 1, 1, 0, 0],
-  22: [1, 2, 1, 1, 0, 0, 2, 1, 1, 2, 0, 2, 0, 0, 0],
-  23: [1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 2, 1, 0, 0],
-  24: [0, 0, 2, 0, 3, 0, 2, 2, 2, 1, 0, 2, 0, 0, 0],
-  25: [2, 0, 1, 1, 0, 0, 2, 3, 1, 1, 1, 1, 2, 0, 0],
-  26: [1, 1, 1, 2, 0, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0],
-  27: [0, 1, 3, 1, 1, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0],
-  28: [0, 1, 0, 1, 0, 0, 1, 2, 2, 2, 1, 2, 1, 0, 0],
-  29: [1, 1, 1, 2, 0, 0, 2, 2, 0, 1, 0, 2, 0, 0, 0],
-  30: [1, 1, 2, 2, 1, 0, 3, 2, 1, 1, 1, 1, 2, 0, 0],
-  31: [1, 0, 1, 1, 1, 0, 1, 2, 1, 0, 1, 1, 1, 0, 0],
-  32: [1, 2, 1, 1, 0, 0, 2, 1, 1, 2, 0, 2, 0, 0, 0],
-  33: [1, 1, 2, 3, 0, 0, 2, 1, 2, 0, 1, 2, 1, 0, 0],
-  34: [0, 0, 2, 0, 3, 0, 2, 2, 2, 1, 0, 2, 0, 0, 0],
-  35: [2, 0, 1, 1, 0, 0, 2, 3, 1, 1, 1, 1, 2, 0, 0],
-  36: [1, 1, 1, 2, 0, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0],
-  37: [0, 1, 3, 1, 1, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0],
-  38: [0, 1, 0, 1, 2, 0, 1, 2, 2, 2, 1, 2, 1, 0, 0],
-  39: [1, 1, 1, 2, 0, 0, 2, 2, 0, 1, 0, 2, 0, 0, 0],
-  40: [1, 1, 2, 2, 0, 0, 3, 2, 1, 1, 1, 1, 2, 0, 0],
-  41: [1, 0, 1, 1, 3, 0, 1, 2, 1, 0, 1, 1, 1, 0, 0],
-  42: [1, 2, 1, 1, 0, 0, 2, 1, 1, 2, 0, 2, 0, 0, 0],
-  43: [1, 1, 2, 3, 0, 0, 2, 1, 2, 0, 1, 2, 1, 0, 0],
-  44: [0, 0, 2, 0, 1, 0, 2, 2, 2, 1, 0, 2, 0, 0, 0],
-  45: [2, 0, 1, 1, 0, 0, 2, 3, 1, 1, 1, 1, 2, 0, 0],
-  46: [1, 1, 1, 2, 0, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0],
-  47: [0, 1, 3, 1, 0, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0],
-  48: [0, 1, 0, 1, 0, 0, 1, 2, 2, 2, 1, 2, 1, 0, 0],
-  49: [1, 1, 1, 2, 0, 0, 2, 2, 0, 1, 0, 2, 0, 0, 0],
-  50: [1, 1, 2, 2, 0, 0, 3, 2, 1, 1, 1, 1, 2, 0, 0],
+  1: [1, 0, 1, 0, 0, 0, 0],
+  2: [1, 0, 1, 1, 0, 0, 0],
+  3: [1, 0, 1, 0, 0, 1, 1],
+  4: [0, 1, 0, 1, 0, 0, 0],
+  5: [2, 0, 1, 0, 0, 0, 0],
+  6: [1, 1, 1, 0, 0, 0, 0],
+  7: [0, 0, 1, 0, 0, 0, 0],
+  8: [0, 1, 0, 0, 0, 0, 1],
+  9: [1, 0, 1, 0, 0, 0, 0],
+  10: [1, 1, 2, 0, 0, 0, 0],
+  11: [1, 0, 1, 0, 0, 0, 0],
+  12: [0, 0, 1, 0, 0, 0, 0],
+  13: [1, 0, 1, 0, 0, 0, 0],
+  14: [0, 0, 1, 0, 0, 0, 0],
+  15: [0, 0, 1, 0, 0, 0, 0],
+  16: [0, 1, 0, 0, 0, 0, 0],
+  17: [0, 0, 1, 0, 0, 0, 0],
+  18: [0, 1, 0, 0, 0, 0, 0],
+  19: [0, 0, 1, 0, 0, 0, 0],
+  20: [0, 0, 1, 0, 0, 0, 0],
+  21: [0, 0, 1, 0, 0, 0, 0],
+  22: [0, 0, 1, 0, 0, 0, 0],
+  23: [0, 0, 1, 0, 0, 0, 0],
+  24: [0, 0, 1, 0, 0, 0, 0],
+  25: [0, 0, 1, 0, 0, 0, 0],
+  26: [0, 0, 1, 0, 0, 0, 0],
+  27: [0, 0, 1, 0, 0, 0, 0],
+  28: [0, 0, 1, 0, 0, 0, 0],
+  29: [0, 0, 1, 0, 0, 0, 0],
+  30: [0, 0, 1, 0, 0, 0, 0],
+  31: [0, 0, 1, 0, 0, 0, 0],
+  32: [0, 0, 1, 0, 0, 0, 0],
+  33: [0, 0, 1, 0, 0, 0, 0],
+  34: [0, 0, 1, 0, 0, 0, 0],
+  35: [0, 0, 1, 0, 0, 0, 0],
+  36: [0, 0, 1, 0, 0, 0, 0],
+  37: [0, 0, 1, 0, 0, 0, 0],
+  38: [0, 0, 1, 0, 0, 0, 0],
+  39: [0, 0, 1, 0, 0, 0, 0],
+  40: [0, 0, 1, 0, 0, 0, 0],
+  41: [0, 0, 1, 0, 0, 0, 0],
+  42: [0, 0, 1, 0, 0, 0, 0],
+  43: [0, 0, 1, 0, 0, 0, 0],
+  44: [0, 0, 1, 0, 0, 0, 0],
+  45: [0, 0, 1, 0, 0, 0, 0],
+  46: [0, 0, 1, 0, 0, 0, 0],
+  47: [0, 0, 1, 0, 0, 0, 0],
+  48: [0, 0, 1, 0, 0, 0, 0],
+  49: [0, 0, 1, 0, 0, 0, 0],
+  50: [0, 0, 1, 0, 0, 0, 0],
 };
 
-// Base template definitions for the recurring questions across the 50 levels
-// Q1 to Q10: Easy (1 pt each)
-// Q11 to Q13: Medium (2 pts each)
-// Q14 to Q15: Hard (3 pts each)
+// =========================================================================
+// 50 UNIQUE QUESTIONS PER SUBJECT (Q1 to Q7)
+// Guaranteed: EXACTLY 7 QUESTIONS PER LEVEL. ZERO REPEATS ACROSS ANY LEVELS.
+// =========================================================================
 
-interface QuestionTemplate {
-  qNum: number;
-  difficulty: Difficulty;
-  subject: QuestionSubject;
-  subjectLabel: string;
-  points: number;
-  getQuestionData: (level: number) => {
-    question: string;
-    options: string[];
-    correctIndex: number;
-    hint: string;
-    explanation: string;
-  };
-}
+// Q1: TAMIL (தமிழ்) - 50 Unique Questions (Level 1 to 50)
+const TAMIL_QUESTIONS = [
+  { q: '“மரம்” என்பது எந்தச் சொல் வகை?', opts: ['வினைச்சொல்', 'பெயர்ச்சொல்', 'இடைச்சொல்', 'உரிச்சொல்'], ans: 1, exp: 'மரம் என்பது ஒரு பொருளின் பெயரைக் குறிப்பதால் பெயர்ச்சொல்.' },
+  { q: '“ஓடினான்” என்பது எந்தச் சொல் வகை?', opts: ['பெயர்ச்சொல்', 'வினைச்சொல்', 'பெயரடை', 'இடைச்சொல்'], ans: 1, exp: 'ஓடினான் என்பது ஒரு செயலை உணர்த்துவதால் வினைச்சொல்.' },
+  { q: '“அழகான மலர்” தொடரில் “அழகான” என்பது என்ன?', opts: ['வினையெச்சம்', 'பெயரடை', 'வினைமுற்று', 'இடைச்சொல்'], ans: 1, exp: 'மலர் என்ற பெயர்ச்சொல்லின் அழகை விளக்குவதால் பெயரடை.' },
+  { q: '“வந்து சென்றான்” தொடரில் “வந்து” என்பது என்ன?', opts: ['வினையெச்சம்', 'பெயர்ச்சொல்', 'உரிச்சொல்', 'வேற்றுமை உருபு'], ans: 0, exp: 'சென்றான் என்ற வினைமுற்றைக் கொண்டு முடிவதால் வினையெச்சம்.' },
+  { q: '“அவன் பள்ளிக்குச் சென்றான்” வாக்கியத்தில் எழுவாய் எது?', opts: ['பள்ளிக்கு', 'சென்றான்', 'அவன்', 'வாக்கியம்'], ans: 2, exp: 'அவன் என்பது வாக்கியத்தின் செயலைச் செய்யும் முதன்மை எழுவாய்.' },
+  { q: '“மாணவர்கள் படிக்கிறார்கள்” வாக்கியத்தில் வினைச்சொல் எது?', opts: ['மாணவர்கள்', 'படிக்கிறார்கள்', 'அவர்கள்', 'மாணவர்'], ans: 1, exp: 'படிக்கிறார்கள் என்பது நிகழும் செயலாகும்.' },
+  { q: '“வேகமாக” என்பது பொதுவாக எந்தச் சொல் வகை?', opts: ['வினையடை', 'பெயர்ச்சொல்', 'வினைமுற்று', 'இடைச்சொல்'], ans: 0, exp: 'வினையின் தன்மையை விளக்குவதால் வினையடை (Adverb).' },
+  { q: 'ஒருமையின் பன்மை வடிவம் எது: “மரம்”?', opts: ['மரங்கள்', 'மரத்தால்', 'மரத்தில்', 'மரத்தை'], ans: 0, exp: 'மரம் என்பதன் பன்மை வடிவம் மரங்கள் ஆகும்.' },
+  { q: '“பூவும் கனியும்” என்பதில் இணைப்புச் சொல் எது?', opts: ['பூ', 'வும்', 'கனி', 'என்பதில்'], ans: 1, exp: 'வும் என்பது எண்ணும்மை இணைப்புச் சொல்.' },
+  { q: '“நல்ல மாணவன்” தொடரில் பெயர்ச்சொல் எது?', opts: ['நல்ல', 'மாணவன்', 'இரண்டும்', 'எதுவுமில்லை'], ans: 1, exp: 'மாணவன் என்பது பெயர்ச்சொல், நல்ல என்பது பெயரடை.' },
+  { q: '“நன்மை” என்பதன் எதிர்ச்சொல் என்ன?', opts: ['தீமை', 'அமைதி', 'அழகு', 'இன்பம்'], ans: 0, exp: 'நன்மையின் எதிர்ச்சொல் தீமை ஆகும்.' },
+  { q: '“செந்தமிழ்” என்பதைப் பிரித்து எழுதக் கிடைப்பது எது?', opts: ['செம்மை + தமிழ்', 'சென் + தமிழ்', 'செது + தமிழ்', 'சே + தமிழ்'], ans: 0, exp: 'செம்மை + தமிழ் = செந்தமிழ்.' },
+  { q: '“நிலவு + என்று” சேர்த்து எழுதக் கிடைப்பது எது?', opts: ['நிலவென்று', 'நிலவுஎன்று', 'நிலாஎன்று', 'நிலவன்று'], ans: 0, exp: 'நிலவு + என்று = நிலவென்று.' },
+  { q: '“ஆழி” என்பதன் பொருள் என்ன?', opts: ['கடல்', 'மலை', 'காற்று', 'நெருப்பு'], ans: 0, exp: 'ஆழி என்பது பெருங்கடலைக் குறிக்கும் தூய தமிழ்ச் சொல்.' },
+  { q: 'திருக்குறளை இயற்றிய புலவர் யார்?', opts: ['திருவள்ளுவர்', 'கம்பர்', 'பாரதியார்', 'ஔவையார்'], ans: 0, exp: 'உலகப் பொதுமறையான திருக்குறளை இயற்றியவர் திருவள்ளுவர்.' },
+  { q: '“யாதும் ஊரே யாவரும் கேளிர்” என்ற உலகளாவிய வரியைப் பாடியவர் யார்?', opts: ['கணியன் பூங்குன்றனார்', 'கபிலர்', 'நக்கீரர்', 'பரிமேலழகர்'], ans: 0, exp: 'புறநானூற்றில் கணியன் பூங்குன்றனார் பாடியது.' },
+  { q: 'மரபுச்சொல் கூறுக: “குயில் ____”?', opts: ['கூவும்', 'கத்தும்', 'அகவும்', 'முழங்கும்'], ans: 0, exp: 'குயில் கூவும் என்பதே தமிழ் மரபு.' },
+  { q: 'தமிழில் வேற்றுமை உருபுகள் மொத்தம் எத்தனை வகைப்படும்?', opts: ['எட்டு', 'ஐந்து', 'ஆறு', 'பத்து'], ans: 0, exp: 'முதல் வேற்றுமை முதல் எட்டாம் வேற்றுமை வரை மொத்தம் 8.' },
+  { q: 'புரட்சிக் கவிஞர் பாரதிதாசனின் இயற்பெயர் என்ன?', opts: ['கனகசுப்புரத்தினம்', 'சுப்பிரமணியன்', 'துரைராசு', 'மாணிக்கம்'], ans: 0, exp: 'பாரதிதாசனின் இயற்பெயர் கனகசுப்புரத்தினம்.' },
+  { q: '“கண்ணன் பாட்டு”, “குயில் பாட்டு” ஆகிய நூல்களை இயற்றியவர் யார்?', opts: ['மகாகவி பாரதியார்', 'கவிமணி', 'வாணிதாசன்', 'முடியரசன்'], ans: 0, exp: 'மகாகவி சுப்பிரமணிய பாரதியார் இயற்றிய நூல்கள்.' },
+  { q: '“புயல்” என்பதன் தூய தமிழ் வடிவம் எது?', opts: ['சூறாவளி', 'தென்றல்', 'வாடை', 'அனல்'], ans: 0, exp: 'சுழன்றடிக்கும் கடும் காற்றைச் சூறாவளி என்பர்.' },
+  { q: '“கரையைக் கடந்தது” என்பதில் “கரை” என்பது எவ்வகைப் பெயர்ச்சொல்?', opts: ['இடப்பெயர்', 'காலப்பெயர்', 'பொருட்பெயர்', 'சினைப்பெயர்'], ans: 0, exp: 'கரை என்பது நிலப்பரப்பின் இடத்தைக் குறிப்பதால் இடப்பெயர்.' },
+  { q: 'குறில் எழுத்துகளுக்குரிய மாத்திரை அளவு என்ன?', opts: ['ஒன்று', 'இரண்டு', 'அரை', 'மூன்று'], ans: 0, exp: 'குறில் எழுத்து ஒலிக்கும் கால அளவு ஒரு மாத்திரை.' },
+  { q: 'நெடில் எழுத்துகளுக்குரிய மாத்திரை அளவு என்ன?', opts: ['இரண்டு', 'ஒன்று', 'மூன்று', 'அரை'], ans: 0, exp: 'நெடில் எழுத்து ஒலிக்கும் கால அளவு இரண்டு மாத்திரைகள்.' },
+  { q: 'ஆய்த எழுத்தின் மாத்திரை அளவு என்ன?', opts: ['அரை மாத்திரை', 'ஒரு மாத்திரை', 'இரண்டு மாத்திரை', 'கால் மாத்திரை'], ans: 0, exp: 'ஃ என்ற ஆய்த எழுத்தின் மாத்திரை அரை.' },
+  { q: 'இரட்டைக்கிளவிக்குச் சரியான உதாரணம் எது?', opts: ['சலசல', 'வாழ்க வாழ்க', 'போ போ', 'தீ தீ'], ans: 0, exp: 'சலசல என்பது பிரித்தால் பொருள் தராத இரட்டைக்கிளவி.' },
+  { q: 'அடுக்குத்தொடருக்குச் சரியான உதாரணம் எது?', opts: ['வாழ்க வாழ்க', 'சலசல', 'மளமள', 'கலகல'], ans: 0, exp: 'பிரித்தாலும் பொருள் தருவது அடுக்குத்தொடர் (வாழ்க வாழ்க).' },
+  { q: 'வல்லின மெய்யெழுத்துகள் எவை?', opts: ['க், ச், ட், த், ப், ற்', 'ங், ஞ், ண், ந், ம், ன்', 'ய், ர், ல், வ், ழ், ள்', 'அ, இ, உ, எ, ஒ'], ans: 0, exp: 'கசடதபற என்பவை வல்லின எழுத்துகள்.' },
+  { q: 'மெல்லின மெய்யெழுத்துகள் எவை?', opts: ['ங், ஞ், ண், ந், ம், ன்', 'க், ச், ட், த், ப், ற்', 'ய், ர், ல், வ், ழ், ள்', 'ஆ, ஈ, ஊ, ஏ, ஓ'], ans: 0, exp: 'ஙஞணநமன என்பவை மெல்லின எழுத்துகள்.' },
+  { q: 'இடையின மெய்யெழுத்துகள் எவை?', opts: ['ய், ர், ல், வ், ழ், ள்', 'க், ச், ட், த், ப், ற்', 'ங், ஞ், ண், ந், ம், ன்', 'ஐ, ஔ, ஃ, ங'], ans: 0, exp: 'யரலவழள என்பவை இடையின எழுத்துகள்.' },
+  { q: 'வயலும் வயல் சார்ந்த நிலமும் எந்தத் திணைக்குரியது?', opts: ['மருதம்', 'குறிஞ்சி', 'முல்லை', 'நெய்தல்'], ans: 0, exp: 'வயலும் வயல் சார்ந்த இடமும் மருத நிலம் எனப்படும்.' },
+  { q: 'கடலும் கடல் சார்ந்த பகுதியும் எந்தத் திணைக்குரியது?', opts: ['நெய்தல்', 'முல்லை', 'பாலை', 'குறிஞ்சி'], ans: 0, exp: 'கடலும் கடல் சார்ந்த மணல் பகுதியும் நெய்தல் திணை.' },
+  { q: 'காடும் காடு சார்ந்த பகுதியும் எந்தத் திணைக்குரியது?', opts: ['முல்லை', 'குறிஞ்சி', 'மருதம்', 'பாலை'], ans: 0, exp: 'காடும் காடு சார்ந்த பகுதியும் முல்லை நிலம்.' },
+  { q: 'மலையும் மலை சார்ந்த பகுதியும் எந்தத் திணைக்குரியது?', opts: ['குறிஞ்சி', 'முல்லை', 'மருதம்', 'நெய்தல்'], ans: 0, exp: 'மலையும் மலை சார்ந்த இடமும் குறிஞ்சி நிலம்.' },
+  { q: 'ஐம்பெருங் காப்பியங்களில் முதன்மையான சிலப்பதிகாரத்தை இயற்றியவர் யார்?', opts: ['இளங்கோவடிகள்', 'சீத்தலைச் சாத்தனார்', 'திருத்தக்கதேவர்', 'தோலாமொழித்தேவர்'], ans: 0, exp: 'சேர மன்னர் மரபில் வந்த இளங்கோவடிகள் சிலப்பதிகாரத்தை இயற்றினார்.' },
+  { q: 'மணிமேகலை காப்பியத்தை இயற்றியவர் யார்?', opts: ['சீத்தலைச் சாத்தனார்', 'இளங்கோவடிகள்', 'கம்பர்', 'புகழேந்தி'], ans: 0, exp: 'மதுரைக் கூலவாணிகன் சீத்தலைச் சாத்தனார் இயற்றினார்.' },
+  { q: 'திருக்குறளில் மொத்தம் எத்தனை அதிகாரங்கள் உள்ளன?', opts: ['133 அதிகாரங்கள்', '120 அதிகாரங்கள்', '100 அதிகாரங்கள்', '150 அதிகாரங்கள்'], ans: 0, exp: 'திருக்குறளில் 133 அதிகாரங்கள் உள்ளன.' },
+  { q: 'திருக்குறளில் உள்ள மொத்த குறட்பாக்களின் எண்ணிக்கை எத்தனை?', opts: ['1330', '1000', '1250', '1500'], ans: 0, exp: 'அதிகாரத்திற்கு 10 வீதம் 1330 குறள்கள் உள்ளன.' },
+  { q: 'நாலடியார் என்ற நீதி நூலை இயற்றியவர்கள் யார்?', opts: ['சமண முனிவர்கள்', 'கபிலர்', 'ஔவையார்', 'நக்கீரர்'], ans: 0, exp: 'நாலடியார் சமண முனிவர்களால் இயற்றப்பட்டது.' },
+  { q: '“இனியவை நாற்பது” நூலின் ஆசிரியர் யார்?', opts: ['பூதஞ்சேந்தனார்', 'பொய்கையார்', 'காரியாசான்', 'கணிமேதாவியார்'], ans: 0, exp: 'இனியவை நாற்பது மதுரைத் தமிழாசிரியர் மகனார் பூதஞ்சேந்தனாரால் பாடப்பட்டது.' },
+  { q: '“நாவாய்” என்பதன் பொருள் என்ன?', opts: ['பெரிய கப்பல் / படகு', 'குதிரை', 'தேர்', 'யானை'], ans: 0, exp: 'நாவாய் என்பது கடலில் செல்லும் பெரிய மரக்கலமாகும்.' },
+  { q: 'கடலில் செல்லும் கப்பல்களுக்கு வழிகாட்டும் கலங்கரை விளக்கத்தின் தூய தமிழ்ப் பெயர் என்ன?', opts: ['கலங்கரை விளக்கம்', 'மின்விளக்கு', 'படகறை', 'துறைமுகம்'], ans: 0, exp: 'கலம் + கரை + விளக்கம் = கடலில் கப்பல்களை கரைக்கு அழைக்கும் ஒளி.' },
+  { q: '“மழை பெய்ததால் வெள்ளம் வந்தது” - இது எவ்வகை வாக்கியம்?', opts: ['காரண காரிய வாக்கியம்', 'வினா வாக்கியம்', 'கட்டளை வாக்கியம்', 'உணர்ச்சி வாக்கியம்'], ans: 0, exp: 'மழை பெய்த காரணத்தால் விளைவு ஏற்பட்டதால் காரண காரிய வாக்கியம்.' },
+  { q: 'தமிழ்நாட்டின் மாநில மரம் எது?', opts: ['பனை மரம்', 'ஆலமரம்', 'வேப்ப மரம்', 'தென்னை மரம்'], ans: 0, exp: 'புயலையும் வறட்சியையும் தாங்கும் பனை மரம் தமிழ்நாட்டின் மாநில மரம்.' },
+  { q: 'தமிழ்நாட்டின் மாநில மலர் எது?', opts: ['செங்காந்தள் மலர்', 'தாமரை', 'மல்லிகை', 'ரோஜா'], ans: 0, exp: 'செங்காந்தள் (Gloriosa superba) தமிழ்நாட்டின் மாநில மலர்.' },
+  { q: 'தமிழ்நாட்டின் மாநிலப் பறவை எது?', opts: ['மரகதப்புறா', 'மயில்', 'கிளி', 'வானம்பாடி'], ans: 0, exp: 'மரகதப்புறா தமிழ்நாட்டின் மாநிலப் பறவை ஆகும்.' },
+  { q: 'தமிழ்நாட்டின் மாநில விலங்கு எது?', opts: ['நீலகிரி வரையாடு', 'புலி', 'யானை', 'மான்'], ans: 0, exp: 'நீலகிரி வரையாடு தமிழ்நாட்டின் மாநில விலங்கு ஆகும்.' },
+  { q: '“வீரமாமுனிவர்” இயற்றிய புகழ்பெற்ற கிறித்தவக் காப்பியம் எது?', opts: ['தேம்பாவணி', 'சீறாப்புராணம்', 'இரட்சணிய யாத்திரிகம்', 'இயேசு காவியம்'], ans: 0, exp: 'கான்ஸ்டான்டைன் ஜோசப் பெஸ்கி (வீரமாமுனிவர்) இயற்றியது தேம்பாவணி.' },
+  { q: '“உமறுப்புலவர்” இயற்றிய இசுலாமியக் காப்பியம் எது?', opts: ['சீறாப்புராணம்', 'தேம்பாவணி', 'நளவெண்பா', 'கம்பராமாயணம்'], ans: 0, exp: 'சீறாப்புராணத்தை இயற்றியவர் உமறுப்புலவர்.' },
+  { q: '“தமிழுக்கும் அமுதென்று பேர் - அந்தத் தமிழ் இன்பத் தமிழ் எங்கள் உயிருக்கு நேர்” என்று பாடியவர் யார்?', opts: ['பாரதிதாசன்', 'பாரதியார்', 'கண்ணதாசன்', 'வாலி'], ans: 0, exp: 'இன்பத் தமிழ் பாடலைப் பாடியவர் புரட்சிக் கவிஞர் பாரதிதாசன்.' },
+];
 
-export const QUESTION_TEMPLATES: QuestionTemplate[] = [
-  // Q1: Tamil
-  {
-    qNum: 1,
-    difficulty: 'Easy',
-    subject: 'tamil',
-    subjectLabel: 'Tamil (தமிழ்)',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[0] : 1;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: '“மரம்” என்பது எந்தச் சொல் வகை?',
-          opts: ['வினைச்சொல்', 'பெயர்ச்சொல்', 'இடைச்சொல்', 'உரிச்சொல்'],
-          h: 'பொருளின் பெயரைக் குறிக்கும் சொல்.',
-          exp: 'மரம் என்பது ஒரு பொருளின் பெயரைக் குறிப்பதால் இது பெயர்ச்சொல் ஆகும்.',
-        },
-        {
-          q: '“ஓடினான்” என்பது எந்தச் சொல் வகை?',
-          opts: ['பெயர்ச்சொல்', 'வினைச்சொல்', 'பெயரடை', 'இடைச்சொல்'],
-          h: 'செயலைக் குறிக்கும் சொல்.',
-          exp: 'ஓடினான் என்பது ஒரு செயலை உணர்த்துவதால் இது வினைச்சொல் ஆகும்.',
-        },
-        {
-          q: '“அழகான மலர்” தொடரில் “அழகான” என்பது என்ன?',
-          opts: ['வினையெச்சம்', 'பெயரடை', 'வினைமுற்று', 'இடைச்சொல்'],
-          h: 'பெயர்ச்சொல்லுக்கு அடைமொழியாக வருவது.',
-          exp: 'மலர் என்ற பெயர்ச்சொல்லின் அழகை விவரிப்பதால் இது பெயரடை ஆகும்.',
-        },
-        {
-          q: '“வந்து சென்றான்” தொடரில் “வந்து” என்பது என்ன?',
-          opts: ['வினையெச்சம்', 'பெயர்ச்சொல்', 'உரிச்சொல்', 'வேற்றுமை உருபு'],
-          h: 'வினைமுற்றை ஏற்று முடியும் எச்சம்.',
-          exp: 'சென்றான் என்ற வினைமுற்றைக் கொண்டு முடிவதால் வந்து என்பது வினையெச்சம்.',
-        },
-        {
-          q: '“அவன் பள்ளிக்குச் சென்றான்” வாக்கியத்தில் எழுவாய் எது?',
-          opts: ['பள்ளிக்கு', 'சென்றான்', 'அவன்', 'வாக்கியம்'],
-          h: 'வாக்கியத்தின் முதன்மை வினைசெய்பவர்.',
-          exp: 'அவன் என்பது வாக்கியத்தின் எழுவாய் ஆகும்.',
-        },
-        {
-          q: '“மாணவர்கள் படிக்கிறார்கள்” வாக்கியத்தில் வினைச்சொல் எது?',
-          opts: ['மாணவர்கள்', 'படிக்கிறார்கள்', 'அவர்கள்', 'மாணவர்'],
-          h: 'செயலைக் குறிக்கும் சொல்.',
-          exp: 'படிக்கிறார்கள் என்பது நிகழும் செயலைக் குறிக்கும் வினைச்சொல்.',
-        },
-        {
-          q: '“வேகமாக” என்பது பொதுவாக எந்தச் சொல் வகை?',
-          opts: ['வினையடை', 'பெயர்ச்சொல்', 'வினைமுற்று', 'இடைச்சொல்'],
-          h: 'வினையை விவரிக்கும் சொல்.',
-          exp: 'வினையின் தன்மையை விளக்குவதால் இது வினையடை (Adverb) ஆகும்.',
-        },
-        {
-          q: 'ஒருமையின் பன்மை வடிவம் எது: “மரம்”?',
-          opts: ['மரங்கள்', 'மரத்தால்', 'மரத்தில்', 'மரத்தை'],
-          h: 'கள் விகுதி சேரும் பன்மை.',
-          exp: 'மரம் என்பதன் பன்மை வடிவம் மரங்கள் ஆகும்.',
-        },
-        {
-          q: '“பூவும் கனியும்” என்பதில் இணைப்புச் சொல் எது?',
-          opts: ['பூ', 'வும்', 'கனி', 'என்பதில்'],
-          h: 'இரண்டு சொற்களை இணைக்கும் இடைச்சொல் விகுதி.',
-          exp: 'வும் என்பது எண்ணும்மை இணைப்புச் சொல் ஆகும்.',
-        },
-        {
-          q: '“நல்ல மாணவன்” தொடரில் பெயர்ச்சொல் எது?',
-          opts: ['நல்ல', 'மாணவன்', 'இரண்டும்', 'எதுவுமில்லை'],
-          h: 'மாணவனைக் குறிக்கும் முதன்மைச் சொல்.',
-          exp: 'மாணவன் என்பது பெயர்ச்சொல், நல்ல என்பது பெயரடை.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
+// Q2: ENGLISH - 50 Unique Questions (Level 1 to 50)
+const ENGLISH_QUESTIONS = [
+  { q: 'She ____ to the disaster relief center yesterday.', opts: ['went', 'goes', 'going', 'gone'], ans: 0, exp: 'Past tense for actions completed yesterday.' },
+  { q: "Which word is an adjective: 'The brave rescuer saved three villagers'?", opts: ['brave', 'rescuer', 'saved', 'villagers'], ans: 0, exp: 'Brave describes the noun rescuer, so it is an adjective.' },
+  { q: "Identify the antonym of 'Perilous':", opts: ['Safe', 'Dangerous', 'Risky', 'Severe'], ans: 0, exp: 'Perilous means hazardous; its direct opposite is safe.' },
+  { q: 'They ____ waiting for the rescue boat since 6 AM.', opts: ['have been', 'are', 'was', 'is'], ans: 0, exp: 'Present perfect continuous expresses action starting in past continuing to now.' },
+  { q: "Choose the correct preposition: 'The boat was anchored ____ the harbor pier.'", opts: ['at', 'between', 'during', 'over'], ans: 0, exp: 'Specific location takes the preposition at.' },
+  { q: "What is the plural form of 'Phenomenon'?", opts: ['Phenomena', 'Phenomenons', 'Phenomenas', 'Phenomeni'], ans: 0, exp: 'Greek-origin words ending in -on form plurals with -a (phenomena).' },
+  { q: "Select the synonym of 'Catastrophe':", opts: ['Disaster', 'Celebration', 'Triumph', 'Fortune'], ans: 0, exp: 'A catastrophe is a sudden severe disaster or calamitous event.' },
+  { q: 'Which sentence is in the Passive Voice?', opts: ['The cyclone alert was broadcast by the meteorologist.', 'The meteorologist broadcast the alert.', 'Villagers evacuated quickly.', 'Rain flooded the streets.'], ans: 0, exp: 'Subject receives action with was broadcast by.' },
+  { q: "Identify the conjunction: 'Pack water ____ battery torches before leaving.'", opts: ['and', 'battery', 'leaving', 'torches'], ans: 0, exp: 'And joins two coordinate noun phrases.' },
+  { q: "The comparative degree of 'Severe' is:", opts: ['More severe', 'Severer', 'Most severe', 'Severest'], ans: 0, exp: 'Multisyllable adjectives use more for comparative.' },
+  { q: 'Choose the correctly spelled emergency term:', opts: ['Emergency', 'Emergancy', 'Emmergency', 'Emergansy'], ans: 0, exp: 'Emergency is the correct English spelling.' },
+  { q: "Identify the adverb in: 'The floodwaters rose rapidly during midnight.'", opts: ['rapidly', 'floodwaters', 'rose', 'midnight'], ans: 0, exp: 'Rapidly modifies the verb rose, showing manner.' },
+  { q: "What does the idiom 'Batten down the hatches' mean?", opts: ['Prepare carefully for impending trouble', 'Open all windows', 'Abandon all ship cargo', 'Sail into the ocean'], ans: 0, exp: 'Nautical origin meaning secure doors and hatches against severe storms.' },
+  { q: 'Neither the captain nor the crew members ____ able to dock.', opts: ['were', 'was', 'is', 'has'], ans: 0, exp: 'With neither/nor, the verb agrees with the closer plural subject (crew members were).' },
+  { q: "Select the negative prefix for 'Prepared':", opts: ['Unprepared', 'Disprepared', 'Inprepared', 'Imprepared'], ans: 0, exp: 'Un- is the standard prefix for prepared.' },
+  { q: "Identify the collective noun in: 'A fleet of rescue boats arrived.'", opts: ['fleet', 'boats', 'rescue', 'arrived'], ans: 0, exp: 'Fleet is a group noun for ships and boats.' },
+  { q: "The word 'Evacuation' functions as a:", opts: ['Noun', 'Verb', 'Adjective', 'Adverb'], ans: 0, exp: 'Words ending in -tion are abstract nouns.' },
+  { q: "Choose the correct pronoun: 'Every volunteer did ____ best during the storm.'", opts: ['their', 'theirs', 'them', 'they'], ans: 0, exp: 'Singular gender-neutral pronoun their.' },
+  { q: "Select the antonym of 'Diminish':", opts: ['Increase', 'Reduce', 'Weaken', 'Shrink'], ans: 0, exp: 'Diminish means decrease; opposite is increase.' },
+  { q: 'Which word means able to bounce back quickly from hardship?', opts: ['Resilient', 'Fragile', 'Rigid', 'Timid'], ans: 0, exp: 'Resilience is the ability to recover from crisis.' },
+  { q: 'If the siren had sounded earlier, the boats ____ docked in time.', opts: ['would have', 'will have', 'must', 'can'], ans: 0, exp: 'Third conditional requires would have + past participle.' },
+  { q: "Choose the phrasal verb: 'The storm winds blew ____ power poles.'", opts: ['down', 'across', 'into', 'for'], ans: 0, exp: 'Blow down means to knock over by wind force.' },
+  { q: "What does the prefix 'Hydro-' indicate in 'Hydrology'?", opts: ['Water', 'Fire', 'Wind', 'Earth'], ans: 0, exp: 'Hydro- comes from the Greek root for water.' },
+  { q: "Select the synonym for 'Precarious':", opts: ['Unstable', 'Secure', 'Comfortable', 'Permanent'], ans: 0, exp: 'Precarious means dangerously uncertain or unstable.' },
+  { q: "Identify the silent letter in 'Doubt':", opts: ['b', 'd', 'u', 't'], ans: 0, exp: 'The letter b in doubt is silent.' },
+  { q: "The past participle of 'Tear' is:", opts: ['Torn', 'Tore', 'Teared', 'Tearing'], ans: 0, exp: 'Tear -> Tore (past) -> Torn (past participle).' },
+  { q: 'Select the sentence with proper quotation punctuation:', opts: ['"Stay sheltered indoors," commanded the warden.', '"Stay sheltered indoors", commanded the warden.', '"Stay sheltered indoors commanded the warden."', 'Stay sheltered indoors, "commanded the warden."'], ans: 0, exp: 'Comma goes inside quotation marks before attribution.' },
+  { q: "What does the maritime distress signal 'SOS' internationally symbolize?", opts: ['Universal distress call code', 'Standard oceanic speed', 'System offshore safety', 'Storm over sea'], ans: 0, exp: 'Chosen in Morse code (... --- ...) for unmistakable distinctiveness.' },
+  { q: "Identify the interjection in: 'Alas! The seawall gave way to the surge.'", opts: ['Alas', 'Seawall', 'Surge', 'Gave'], ans: 0, exp: 'Alas is an exclamatory interjection expressing grief.' },
+  { q: 'If heavy cyclonic precipitation continues, the river ____ its banks.', opts: ['will breach', 'breached', 'would breached', 'has breach'], ans: 0, exp: 'First conditional uses present simple + will + verb.' },
+  { q: 'A barometer is primarily employed to gauge:', opts: ['Atmospheric pressure', 'Ocean salinity', 'Wind angle', 'Earthquake depth'], ans: 0, exp: 'Barometers register barometric air pressure drops.' },
+  { q: "Select the opposite of 'Abundant':", opts: ['Scarce', 'Plentiful', 'Copious', 'Lavish'], ans: 0, exp: 'Scarce means in short supply; opposite of abundant.' },
+  { q: "What kind of noun is 'Courage'?", opts: ['Abstract noun', 'Proper noun', 'Collective noun', 'Material noun'], ans: 0, exp: 'Courage is an intangible quality, hence abstract.' },
+  { q: "Select the correct article: 'It was ____ unprecedented gale.'", opts: ['an', 'a', 'the', 'no article'], ans: 0, exp: 'Unprecedented starts with a vowel sound, so an is used.' },
+  { q: "Find the direct object: 'The helicopter dropped emergency rations.'", opts: ['emergency rations', 'helicopter', 'dropped', 'the'], ans: 0, exp: 'Emergency rations answers what was dropped.' },
+  { q: "The idiom 'Weather the storm' signifies:", opts: ['Survive a perilous ordeal', 'Forecast rain', 'Construct a shelter', 'Fly an aircraft'], ans: 0, exp: 'Metaphor for enduring hardships and emerging safe.' },
+  { q: 'Which is a compound word?', opts: ['Flashlight', 'Stormy', 'Rapidly', 'Rescue'], ans: 0, exp: 'Flash + light combines two words into a compound.' },
+  { q: "What is the past tense of 'Broadcast'?", opts: ['Broadcast', 'Broadcasted', 'Broadcasting', 'Broadcasts'], ans: 0, exp: 'Standard English past tense remains broadcast.' },
+  { q: "Choose the synonym of 'Sturdy':", opts: ['Robust', 'Brittle', 'Flimsy', 'Delicate'], ans: 0, exp: 'Sturdy shelter means strong, durable, or robust.' },
+  { q: "Identify the subject in: 'Across the turbulent waves sailed the rescue boat.'", opts: ['the rescue boat', 'turbulent waves', 'sailed', 'across'], ans: 0, exp: 'The inverted sentence subject performing the action is the rescue boat.' },
+  { q: "Choose the correct homophone: 'The wind blew with enormous ____.'", opts: ['force', 'foss', 'fours', 'farce'], ans: 0, exp: 'Force denotes strength and physical power.' },
+  { q: "What is the definition of 'Inundation'?", opts: ['Severe flood or deluge', 'Drought condition', 'Volcanic lava', 'Earth tremor'], ans: 0, exp: 'Inundation is the submerging of land under water.' },
+  { q: "Choose the modal verb: 'You ____ never touch downed power lines.'", opts: ['must', 'might', 'could', 'may'], ans: 0, exp: 'Must indicates mandatory life-safety necessity.' },
+  { q: "Antonym of 'Fragile':", opts: ['Durable', 'Delicate', 'Feeble', 'Weak'], ans: 0, exp: 'Durable structures withstand storm pressures.' },
+  { q: "Identify the gerund in: 'Swimming in flood currents is fatal.'", opts: ['Swimming', 'Currents', 'Fatal', 'Flood'], ans: 0, exp: 'Swimming is a verb form ending in -ing functioning as subject noun.' },
+  { q: "What does the root 'Tele-' signify in 'Telemetry'?", opts: ['At a distance', 'Underneath', 'Electric', 'Instant'], ans: 0, exp: 'Tele means far off or over a distance.' },
+  { q: "Plural of 'Crisis':", opts: ['Crises', 'Crisises', 'Crisis', 'Crisi'], ans: 0, exp: 'Words ending in -is shift to -es (crisis -> crises).' },
+  { q: "What does 'At the eleventh hour' mean?", opts: ['At the latest possible moment', 'At 11:00 AM sharp', 'Too late to act', 'During noon break'], ans: 0, exp: 'Idiom for taking crucial action right before deadline.' },
+  { q: "Choose the question tag: 'The cyclone has moved offshore, ____?'", opts: ["hasn't it", 'has it', "didn't it", 'is it'], ans: 0, exp: 'Positive statement with auxiliary has takes negative tag hasn\'t it.' },
+  { q: "Synonym of 'Steadfast':", opts: ['Unwavering', 'Fickle', 'Uncertain', 'Hesitant'], ans: 0, exp: 'Steadfast means firm and resolutely dependable.' },
+];
 
-  // Q2: Tamil
-  {
-    qNum: 2,
-    difficulty: 'Easy',
-    subject: 'tamil',
-    subjectLabel: 'Tamil (தமிழ்)',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[1] : 0;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: '“வந்து சென்றான்” தொடரில் “வந்து” என்பது என்ன?',
-          opts: ['வினையெச்சம்', 'பெயர்ச்சொல்', 'உரிச்சொல்', 'வேற்றுமை உருபு'],
-          h: 'வினைமுற்றை ஏற்று முடியும் சொல்.',
-          exp: 'சென்றான் என்ற வினையை ஏற்று முடிவதால் வினையெச்சம்.',
-        },
-        {
-          q: '“அவன் பள்ளிக்குச் சென்றான்” வாக்கியத்தில் எழுவாய் எது?',
-          opts: ['பள்ளிக்கு', 'சென்றான்', 'அவன்', 'வாக்கியம்'],
-          h: 'வாக்கியத்தின் முதன்மை வினைசெய்பவர்.',
-          exp: 'அவன் என்பது வாக்கியத்தின் எழுவாய்.',
-        },
-        {
-          q: '“மாணவர்கள் படிக்கிறார்கள்” வாக்கியத்தில் வினைச்சொல் எது?',
-          opts: ['மாணவர்கள்', 'படிக்கிறார்கள்', 'அவர்கள்', 'மாணவர்'],
-          h: 'செயலைக் குறிக்கும் சொல்.',
-          exp: 'படிக்கிறார்கள் என்பது நிகழும் செயலைக் குறிக்கும் வினைச்சொல்.',
-        },
-        {
-          q: '“வேகமாக” என்பது பொதுவாக எந்தச் சொல் வகை?',
-          opts: ['வினையடை', 'பெயர்ச்சொல்', 'வினைமுற்று', 'இடைச்சொல்'],
-          h: 'வினையை விவரிக்கும் சொல்.',
-          exp: 'வினையின் தன்மையை விளக்குவதால் இது வினையடை.',
-        },
-        {
-          q: 'ஒருமையின் பன்மை வடிவம் எது: “மரம்”?',
-          opts: ['மரங்கள்', 'மரத்தால்', 'மரத்தில்', 'மரத்தை'],
-          h: 'கள் விகுதி சேரும் பன்மை.',
-          exp: 'மரம் என்பதன் பன்மை வடிவம் மரங்கள் ஆகும்.',
-        },
-        {
-          q: '“பூவும் கனியும்” என்பதில் இணைப்புச் சொல் எது?',
-          opts: ['பூ', 'வும்', 'கனி', 'என்பதில்'],
-          h: 'இரண்டு சொற்களை இணைக்கும் இடைச்சொல் விகுதி.',
-          exp: 'வும் என்பது இணைப்புச் சொல் ஆகும்.',
-        },
-        {
-          q: '“நல்ல மாணவன்” தொடரில் பெயர்ச்சொல் எது?',
-          opts: ['நல்ல', 'மாணவன்', 'இரண்டும்', 'எதுவுமில்லை'],
-          h: 'மாணவனைக் குறிக்கும் முதன்மைச் சொல்.',
-          exp: 'மாணவன் என்பது பெயர்ச்சொல் ஆகும்.',
-        },
-        {
-          q: '“மரம்” என்பது எந்தச் சொல் வகை?',
-          opts: ['வினைச்சொல்', 'பெயர்ச்சொல்', 'இடைச்சொல்', 'உரிச்சொல்'],
-          h: 'பொருளின் பெயரைக் குறிக்கும் சொல்.',
-          exp: 'மரம் என்பது பெயர்ச்சொல் ஆகும்.',
-        },
-        {
-          q: '“ஓடினான்” என்பது எந்தச் சொல் வகை?',
-          opts: ['பெயர்ச்சொல்', 'வினைச்சொல்', 'பெயரடை', 'இடைச்சொல்'],
-          h: 'செயலைக் குறிக்கும் சொல்.',
-          exp: 'ஓடினான் என்பது வினைச்சொல் ஆகும்.',
-        },
-        {
-          q: '“அழகான மலர்” தொடரில் “அழகான” என்பது என்ன?',
-          opts: ['வினையெச்சம்', 'பெயரடை', 'வினைமுற்று', 'இடைச்சொல்'],
-          h: 'பெயர்ச்சொல்லுக்கு அடைமொழியாக வருவது.',
-          exp: 'அழகான என்பது பெயரடை ஆகும்.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
+// Q3: MATHEMATICS - 50 Unique Questions (Level 1 to 50)
+const MATHS_QUESTIONS = [
+  { q: 'Relief biscuit packets (120) are divided equally among 8 shelter families. How many does each receive?', opts: ['15 packets', '12 packets', '18 packets', '20 packets'], ans: 0, exp: '120 ÷ 8 = 15 packets per family.' },
+  { q: 'A storm wind starts at 40 km/h and accelerates by 15 km/h each hour for 3 hours. What is its speed?', opts: ['85 km/h', '75 km/h', '95 km/h', '100 km/h'], ans: 0, exp: '40 + (15 × 3) = 40 + 45 = 85 km/h.' },
+  { q: 'An emergency water tank holds 500 liters. If 45 liters are used daily for 6 days, how much remains?', opts: ['230 liters', '210 liters', '250 liters', '270 liters'], ans: 0, exp: '500 - (45 × 6) = 500 - 270 = 230 liters.' },
+  { q: 'A rectangular survival shelter measures 12 m long and 8 m wide. What is its perimeter?', opts: ['40 m', '96 m', '48 m', '36 m'], ans: 0, exp: 'Perimeter = 2 × (L + W) = 2 × (12 + 8) = 40 m.' },
+  { q: 'A cyclone is 300 km away and moves toward the coast at 25 km/h. How many hours until landfall?', opts: ['12 hours', '10 hours', '15 hours', '8 hours'], ans: 0, exp: 'Time = Distance / Speed = 300 / 25 = 12 hours.' },
+  { q: 'An emergency battery has 320 Wh of charge. If 25% has been consumed, how much energy was used?', opts: ['80 Wh', '64 Wh', '100 Wh', '75 Wh'], ans: 0, exp: '25% of 320 = 0.25 × 320 = 80 Wh.' },
+  { q: 'Solve the linear equation for shelter bracing: 4x + 12 = 52. What is x?', opts: ['10', '12', '8', '14'], ans: 0, exp: '4x = 52 - 12 = 40 => x = 10.' },
+  { q: 'Sandbags are filled with 3 parts sand to 2 parts gravel. In a 60 kg bag, how much is sand?', opts: ['36 kg', '24 kg', '30 kg', '40 kg'], ans: 0, exp: 'Sand fraction is 3/5. (3/5) × 60 = 36 kg.' },
+  { q: 'What is the floor area of a shelter tent measuring 15 m in length and 9 m in width?', opts: ['135 sq m', '120 sq m', '145 sq m', '48 sq m'], ans: 0, exp: 'Area = length × width = 15 × 9 = 135 sq m.' },
+  { q: 'Out of 24 emergency solar lamps, 18 are fully charged. What percentage is charged?', opts: ['75%', '80%', '65%', '70%'], ans: 0, exp: '(18 / 24) × 100 = 0.75 × 100 = 75%.' },
+  { q: 'A rainwater barrel collects 18 liters every 30 minutes during a storm. How much in 4 hours?', opts: ['144 liters', '120 liters', '160 liters', '72 liters'], ans: 0, exp: '4 hours = 8 half-hours. 8 × 18 = 144 liters.' },
+  { q: 'If 5 rescue boats can carry 65 persons, how many persons can 8 identical boats carry?', opts: ['104 persons', '96 persons', '110 persons', '120 persons'], ans: 0, exp: 'Capacity per boat = 65 / 5 = 13. 8 × 13 = 104 persons.' },
+  { q: 'Calculate the square root of emergency shelter grid area: √196.', opts: ['14', '16', '12', '18'], ans: 0, exp: '14 × 14 = 196.' },
+  { q: 'An emergency beacon transmits a pulse every 15 seconds. How many pulses does it send in 1 hour?', opts: ['240 pulses', '180 pulses', '300 pulses', '120 pulses'], ans: 0, exp: '1 hour = 3600 seconds. 3600 / 15 = 240 pulses.' },
+  { q: 'If a rope has a breaking load of 450 kg, what is the safe working load at a 3:1 safety factor?', opts: ['150 kg', '200 kg', '100 kg', '300 kg'], ans: 0, exp: 'Safe working load = 450 / 3 = 150 kg.' },
+  { q: 'Simplify: (18 × 4) + (36 ÷ 6) - 8.', opts: ['70', '68', '74', '72'], ans: 0, exp: '72 + 6 - 8 = 70.' },
+  { q: 'A coastal floodwall is 240 meters long. If 35% was reinforced with gabions, how many meters are reinforced?', opts: ['84 m', '80 m', '90 m', '75 m'], ans: 0, exp: '0.35 × 240 = 84 m.' },
+  { q: 'Convert 72 km/h cyclone gust speed into meters per second (m/s).', opts: ['20 m/s', '25 m/s', '18 m/s', '30 m/s'], ans: 0, exp: '72 × (5/18) = 20 m/s.' },
+  { q: 'Find the average of four wind speed readings: 45, 55, 65, and 75 km/h.', opts: ['60 km/h', '58 km/h', '62 km/h', '65 km/h'], ans: 0, exp: '(45 + 55 + 65 + 75) / 4 = 240 / 4 = 60 km/h.' },
+  { q: 'In a shelter camp of 300 people, the ratio of children to adults is 2:3. How many children are there?', opts: ['120 children', '150 children', '180 children', '100 children'], ans: 0, exp: '2/5 of 300 = 2 × 60 = 120 children.' },
+  { q: 'Solve: 5(2x - 3) = 35. What is x?', opts: ['5', '4', '6', '7'], ans: 0, exp: '2x - 3 = 7 => 2x = 10 => x = 5.' },
+  { q: 'A rescue helicopter flies 180 km in 45 minutes (0.75 hours). What is its average speed?', opts: ['240 km/h', '200 km/h', '220 km/h', '260 km/h'], ans: 0, exp: 'Speed = 180 / 0.75 = 240 km/h.' },
+  { q: 'A 24V solar inverter battery draws 3 Amperes. What is the power in Watts (P = V × I)?', opts: ['72 W', '68 W', '80 W', '48 W'], ans: 0, exp: 'P = 24 × 3 = 72 Watts.' },
+  { q: 'What is the volume of a rectangular emergency water tank 4m long, 3m wide, and 2m high?', opts: ['24 cubic meters', '20 cubic meters', '18 cubic meters', '30 cubic meters'], ans: 0, exp: 'Volume = 4 × 3 × 2 = 24 cu m.' },
+  { q: 'If 1 cubic meter of water equals 1000 liters, how many liters are in 2.5 cubic meters?', opts: ['2500 liters', '2000 liters', '3000 liters', '250 liters'], ans: 0, exp: '2.5 × 1000 = 2500 liters.' },
+  { q: 'Calculate the hypotenuse of a right-triangle roof truss with base 6m and height 8m (Pythagoras theorem).', opts: ['10 m', '12 m', '9 m', '14 m'], ans: 0, exp: '√(6² + 8²) = √(36 + 64) = √100 = 10 m.' },
+  { q: 'A food store has enough grain for 50 people for 12 days. How many days will it last 60 people?', opts: ['10 days', '8 days', '11 days', '9 days'], ans: 0, exp: 'Total person-days = 50 × 12 = 600. Days = 600 / 60 = 10 days.' },
+  { q: 'What is 15% of 600 emergency medical syringes?', opts: ['90', '80', '100', '75'], ans: 0, exp: '0.15 × 600 = 90 syringes.' },
+  { q: 'If the barometric pressure drops from 1010 hPa to 975 hPa, what is the absolute change in pressure?', opts: ['35 hPa', '45 hPa', '25 hPa', '30 hPa'], ans: 0, exp: '1010 - 975 = 35 hPa.' },
+  { q: 'Find the value of 2⁴ × 3².', opts: ['144', '128', '162', '108'], ans: 0, exp: '16 × 9 = 144.' },
+  { q: 'A community raised 48,000 INR for disaster relief. If 3 equal installments were disbursed, how much per disbursement?', opts: ['16,000 INR', '14,000 INR', '18,000 INR', '15,000 INR'], ans: 0, exp: '48,000 ÷ 3 = 16,000 INR.' },
+  { q: 'Evaluate: 125 ÷ (5² - 20) + 14.', opts: ['39', '35', '41', '25'], ans: 0, exp: '125 ÷ (25 - 20) + 14 = 125 ÷ 5 + 14 = 25 + 14 = 39.' },
+  { q: 'In a sample of 80 survivors, 64 have valid identification. What is the simplified ratio of identified survivors?', opts: ['4/5', '3/4', '5/6', '7/8'], ans: 0, exp: '64/80 = 4/5 (or 80%).' },
+  { q: 'A solar charger provides 5V at 2A. What is the resistance of the connected load (R = V / I)?', opts: ['2.5 Ω', '3.0 Ω', '2.0 Ω', '10 Ω'], ans: 0, exp: 'R = 5 / 2 = 2.5 Ohms.' },
+  { q: 'What is the sum of interior angles of a quadrilateral emergency shelter base?', opts: ['360 degrees', '180 degrees', '540 degrees', '270 degrees'], ans: 0, exp: '(n - 2) × 180° = 2 × 180° = 360°.' },
+  { q: 'Solve for y: 3y - 15 = 45. What is y?', opts: ['20', '15', '25', '18'], ans: 0, exp: '3y = 60 => y = 20.' },
+  { q: 'A coastal village has 1,200 residents. If 85% evacuated prior to cyclone landfall, how many evacuated?', opts: ['1020 residents', '980 residents', '1050 residents', '1000 residents'], ans: 0, exp: '0.85 × 1200 = 1020 residents.' },
+  { q: 'A 12-meter antenna mast casts a 9-meter shadow. What is the tangent of the sun angle (Height / Shadow)?', opts: ['1.333', '0.75', '1.50', '1.25'], ans: 0, exp: '12 / 9 = 4/3 = 1.333.' },
+  { q: 'How many minutes are in 4.5 hours of emergency generator operation?', opts: ['270 minutes', '240 minutes', '260 minutes', '300 minutes'], ans: 0, exp: '4.5 × 60 = 270 minutes.' },
+  { q: 'Evaluate: √144 + √81 - √25.', opts: ['16', '14', '18', '20'], ans: 0, exp: '12 + 9 - 5 = 16.' },
+  { q: 'Two pumps empty a flooded shelter basement. Pump A does 60 L/min and Pump B does 40 L/min. Together in 30 mins?', opts: ['3000 liters', '2400 liters', '3600 liters', '2800 liters'], ans: 0, exp: '(60 + 40) × 30 = 100 × 30 = 3000 liters.' },
+  { q: 'What is the probability of rolling an even number on a standard six-sided dispatch die?', opts: ['1/2', '1/3', '2/3', '1/6'], ans: 0, exp: 'Even numbers: {2, 4, 6} = 3/6 = 1/2.' },
+  { q: 'Convert 1500 meters of shoreline into kilometers.', opts: ['1.5 km', '15 km', '0.15 km', '150 km'], ans: 0, exp: '1500 / 1000 = 1.5 km.' },
+  { q: 'If x + y = 20 and x - y = 4, what is the value of x?', opts: ['12', '10', '14', '16'], ans: 0, exp: '2x = 24 => x = 12.' },
+  { q: 'Calculate the total cost of 15 emergency tarpaulins at 240 INR each.', opts: ['3,600 INR', '3,400 INR', '3,800 INR', '4,000 INR'], ans: 0, exp: '15 × 240 = 3,600 INR.' },
+  { q: 'A shelter foundation uses 18 bags of cement at 350 INR each. Total expenditure?', opts: ['6,300 INR', '6,000 INR', '6,500 INR', '5,800 INR'], ans: 0, exp: '18 × 350 = 6,300 INR.' },
+  { q: 'Find the LCM (Least Common Multiple) of emergency siren inspection cycles: 6 and 8 days.', opts: ['24 days', '48 days', '16 days', '12 days'], ans: 0, exp: 'Multiples of 8: 8, 16, 24. 24 is divisible by 6.' },
+  { q: 'Find the HCF (Highest Common Factor) of 36 and 54 relief packets.', opts: ['18', '9', '12', '6'], ans: 0, exp: 'Factors of 36 and 54 include 18 (36=18×2, 54=18×3).' },
+  { q: 'If 30% of a water tank is 450 liters, what is the total capacity of the tank?', opts: ['1500 liters', '1350 liters', '1600 liters', '1200 liters'], ans: 0, exp: '450 ÷ 0.30 = 1500 liters.' },
+  { q: 'Calculate the speed of a cyclone traveling 420 km in 7 hours.', opts: ['60 km/h', '55 km/h', '65 km/h', '70 km/h'], ans: 0, exp: 'Speed = 420 / 7 = 60 km/h.' },
+];
 
-  // Q3: English
-  {
-    qNum: 3,
-    difficulty: 'Easy',
-    subject: 'english',
-    subjectLabel: 'English',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[2] : 1;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'Choose the correct verb: “She ___ to school every day.”',
-          opts: ['go', 'goes', 'going', 'gone'],
-          h: 'Third-person singular takes -s / -es in simple present tense.',
-          exp: 'Subject "She" is singular, requiring "goes".',
-        },
-        {
-          q: 'Choose the correct article: “He ate ___ apple.”',
-          opts: ['a', 'an', 'the', 'no article'],
-          h: 'Words starting with vowel sounds take "an".',
-          exp: '"Apple" begins with a vowel sound, so "an" is required.',
-        },
-        {
-          q: 'Identify the adjective: “It was a beautiful day.”',
-          opts: ['It', 'was', 'beautiful', 'day'],
-          h: 'The word describing the noun "day".',
-          exp: '"Beautiful" describes the day, making it an adjective.',
-        },
-        {
-          q: 'Choose the plural of “child.”',
-          opts: ['childs', 'childes', 'children', 'childrens'],
-          h: 'Irregular plural form.',
-          exp: 'The plural of child is children.',
-        },
-        {
-          q: 'Choose the past tense of “write.”',
-          opts: ['written', 'wrote', 'writes', 'writing'],
-          h: 'Simple past tense.',
-          exp: 'Write -> Wrote -> Written.',
-        },
-        {
-          q: 'Choose the correct pronoun: “Ravi and ___ went home.”',
-          opts: ['me', 'I', 'mine', 'my'],
-          h: 'Subject pronoun required.',
-          exp: '"I" is the subject pronoun ("Ravi and I went home").',
-        },
-        {
-          q: 'Identify the adverb: “The bird flew gracefully.”',
-          opts: ['bird', 'flew', 'the', 'gracefully'],
-          h: 'Word ending in -ly describing how it flew.',
-          exp: '"Gracefully" modifies the verb "flew".',
-        },
-        {
-          q: 'Choose the correct preposition: “The book is ___ the table.”',
-          opts: ['on', 'at', 'by', 'from'],
-          h: 'Resting upon the surface.',
-          exp: '"On the table" indicates position on the surface.',
-        },
-        {
-          q: 'Choose the correct sentence.',
-          opts: ['They is ready.', 'They are ready.', 'They am ready.', 'They be ready.'],
-          h: 'Plural subject "They" takes "are".',
-          exp: '"They are ready" is grammatically correct.',
-        },
-        {
-          q: 'Choose the opposite of “ancient.”',
-          opts: ['old', 'historic', 'modern', 'early'],
-          h: 'Belonging to the present or recent times.',
-          exp: 'The antonym of ancient is modern.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
+// Q4: SCIENCE - 50 Unique Questions (Level 1 to 50)
+const SCIENCE_QUESTIONS = [
+  { q: 'What scientific instrument measures atmospheric air pressure drops during cyclonic storms?', opts: ['Barometer', 'Anemometer', 'Hygrometer', 'Thermometer'], ans: 0, exp: 'Barometers register barometric atmospheric pressure.' },
+  { q: 'What is the calm, low-pressure core at the center of a tropical cyclone called?', opts: ['Eye of the storm', 'Vortex ridge', 'Storm surge', 'Eye wall'], ans: 0, exp: 'The eye is a circular area of comparatively light winds and fair weather.' },
+  { q: 'Which gas is taken in by humans during cellular respiration and supplied in emergency oxygen tanks?', opts: ['Oxygen', 'Carbon dioxide', 'Nitrogen', 'Argon'], ans: 0, exp: 'Oxygen (O2) is required for cellular metabolic respiration.' },
+  { q: 'What thermal energy source fuels and drives tropical cyclone formation over warm tropical oceans?', opts: ['Latent heat of condensation', 'Geothermal magma', 'Solar radiation reflection', 'Tidal friction'], ans: 0, exp: 'Water vapor evaporating from warm oceans releases latent heat upon condensation.' },
+  { q: 'What physical principle allows solar photovoltaic panels to generate electrical direct current (DC)?', opts: ['Photovoltaic effect', 'Electromagnetic induction', 'Thermoelectric Seebeck effect', 'Piezoelectric effect'], ans: 0, exp: 'Photons excite electrons across semiconductor p-n junctions.' },
+  { q: 'Sound waves traveling through storm air are categorized as what type of wave?', opts: ['Longitudinal mechanical wave', 'Transverse electromagnetic wave', 'Surface oceanic wave', 'Torsional wave'], ans: 0, exp: 'Sound propagates through particle compressions and rarefactions.' },
+  { q: 'What causes electrical lightning flashes between storm clouds and the ground?', opts: ['Electrostatic charge buildup and discharge', 'Magnetic field reversal', 'Nuclear fission in raindrops', 'Chemical combustion of ozone'], ans: 0, exp: 'Collision of ice crystals creates massive electrostatic voltage potential.' },
+  { q: 'What is the standard boiling point of pure water at sea level (1013.25 hPa)?', opts: ['100°C', '90°C', '110°C', '120°C'], ans: 0, exp: 'Water boils at 100°C under normal atmospheric pressure.' },
+  { q: 'Which chemical element has the atomic symbol Na and forms table salt with chlorine?', opts: ['Sodium', 'Nitrogen', 'Nickel', 'Neon'], ans: 0, exp: 'Na stands for Natrium (Sodium).' },
+  { q: 'Why does warm tropical ocean air rise during storm inception?', opts: ['Warm air is less dense than cooler surrounding air', 'Warm air has higher gravity', 'Cold air repels oxygen', 'Nitrogen molecules contract'], ans: 0, exp: 'Thermal expansion lowers air density, causing buoyancy rise.' },
+  { q: 'What is the normal body temperature of a healthy human in Celsius?', opts: ['37°C', '35°C', '39°C', '41°C'], ans: 0, exp: 'Standard human core body temperature is approximately 37°C (98.6°F).' },
+  { q: 'What instrument measures wind velocity and speed during cyclonic gale forces?', opts: ['Anemometer', 'Wind vane', 'Barometer', 'Altimeter'], ans: 0, exp: 'Anemometers measure instantaneous and sustained wind speed.' },
+  { q: 'What color on the visible light spectrum has the shortest wavelength and highest frequency?', opts: ['Violet', 'Red', 'Yellow', 'Green'], ans: 0, exp: 'Violet has the shortest wavelength (~380-450 nm) in the visible spectrum.' },
+  { q: 'Which organelle is universally referred to as the powerhouse of eukaryotic cells?', opts: ['Mitochondria', 'Ribosome', 'Nucleus', 'Endoplasmic reticulum'], ans: 0, exp: 'Mitochondria generate adenosine triphosphate (ATP).' },
+  { q: 'What is the chemical formula for ordinary water?', opts: ['H2O', 'H2O2', 'CO2', 'NaCl'], ans: 0, exp: 'Water consists of two Hydrogen atoms bonded to one Oxygen atom.' },
+  { q: 'What type of lens is utilized in magnifying glasses to concentrate light?', opts: ['Convex lens', 'Concave lens', 'Cylindrical lens', 'Bifocal lens'], ans: 0, exp: 'Convex lenses converge parallel light rays to a focal point.' },
+  { q: 'Which blood cells are responsible for fighting infection and pathogens in human survivors?', opts: ['White blood cells (Leukocytes)', 'Red blood cells (Erythrocytes)', 'Platelets (Thrombocytes)', 'Plasma proteins'], ans: 0, exp: 'Leukocytes orchestrate the immune defense.' },
+  { q: 'What is Newton’s First Law of Motion widely known as?', opts: ['Law of Inertia', 'Law of Acceleration', 'Law of Action-Reaction', 'Law of Gravitation'], ans: 0, exp: 'Objects remain at rest or in uniform motion unless acted upon by an external force.' },
+  { q: 'What is the pH value of pure distilled neutral drinking water at 25°C?', opts: ['7.0', '5.5', '8.5', '9.0'], ans: 0, exp: 'A pH of 7.0 indicates exact neutrality.' },
+  { q: 'Which layer of the atmosphere contains the ozone layer that filters UV radiation?', opts: ['Stratosphere', 'Troposphere', 'Mesosphere', 'Thermosphere'], ans: 0, exp: 'The ozone layer resides in the stratosphere (~15-35 km).' },
+  { q: 'In which atmospheric layer does virtually all Earth weather and cyclonic activity occur?', opts: ['Troposphere', 'Stratosphere', 'Exosphere', 'Thermosphere'], ans: 0, exp: 'The troposphere extends from ground level to ~12 km where weather forms.' },
+  { q: 'What is the rate of gravitational acceleration at Earth’s surface (g)?', opts: ['9.8 m/s²', '8.9 m/s²', '10.5 m/s²', '6.4 m/s²'], ans: 0, exp: 'Standard acceleration due to Earth gravity is ~9.8 m/s².' },
+  { q: 'Which vitamin is synthesized in human skin upon exposure to sunlight?', opts: ['Vitamin D', 'Vitamin C', 'Vitamin A', 'Vitamin B12'], ans: 0, exp: 'UVB light synthesizes cholecalciferol (Vitamin D3) in the skin.' },
+  { q: 'What is the process called when liquid water transforms into gaseous water vapor?', opts: ['Evaporation', 'Condensation', 'Sublimation', 'Precipitation'], ans: 0, exp: 'Evaporation is the phase transition from liquid to gas.' },
+  { q: 'Which force causes an apparent deflection of moving storm air due to Earth’s rotation?', opts: ['Coriolis effect', 'Centrifugal force', 'Gravitational pull', 'Magnetic Lorentz force'], ans: 0, exp: 'The Coriolis effect curves cyclone winds counterclockwise in the Northern Hemisphere.' },
+  { q: 'What is the SI unit of electrical resistance?', opts: ['Ohm (Ω)', 'Ampere (A)', 'Volt (V)', 'Watt (W)'], ans: 0, exp: 'Resistance is measured in Ohms (Ω).' },
+  { q: 'What chemical substance is universally added to floodwater survival tablets to disinfect pathogens?', opts: ['Chlorine (Halazone)', 'Sodium fluoride', 'Calcium carbonate', 'Iron oxide'], ans: 0, exp: 'Chlorine breaks chemical bonds in bacterial cell walls, disinfecting water.' },
+  { q: 'Which gas is the most abundant in Earth’s dry atmosphere (~78%)?', opts: ['Nitrogen', 'Oxygen', 'Carbon dioxide', 'Hydrogen'], ans: 0, exp: 'Nitrogen comprises roughly 78.08% of dry atmospheric air.' },
+  { q: 'What is the primary function of red blood cells in the human body?', opts: ['Transport oxygen via hemoglobin', 'Produce antibodies', 'Clot open wounds', 'Filter metabolic toxins'], ans: 0, exp: 'Hemoglobin in erythrocytes binds and transports oxygen molecules.' },
+  { q: 'What type of energy is stored in emergency lead-acid battery chemicals?', opts: ['Chemical potential energy', 'Kinetic energy', 'Nuclear energy', 'Thermal radiant energy'], ans: 0, exp: 'Chemical reactions store and release electrical energy.' },
+  { q: 'What scale measures earthquake magnitude and seismic ground shaking?', opts: ['Richter scale', 'Beaufort scale', 'Mohs scale', 'Saffir-Simpson scale'], ans: 0, exp: 'The Richter scale (and Moment Magnitude scale) measures seismic energy.' },
+  { q: 'Which wind scale classifies hurricane and cyclone sustained wind velocities?', opts: ['Saffir-Simpson / IMD scale', 'Kelvin scale', 'Mohs scale', 'Decibel scale'], ans: 0, exp: 'IMD uses wind speed categories: Depression, Cyclonic Storm, Severe, Super Cyclone.' },
+  { q: 'What is the chemical name for ordinary baking soda used in fire suppression?', opts: ['Sodium bicarbonate', 'Sodium hydroxide', 'Sodium chloride', 'Calcium sulfate'], ans: 0, exp: 'Sodium bicarbonate releases CO2 when heated, smothering flames.' },
+  { q: 'Which organ in the human body continuously filters waste products from blood to form urine?', opts: ['Kidneys', 'Liver', 'Lungs', 'Stomach'], ans: 0, exp: 'Nephrons in the kidneys filter blood and regulate hydration.' },
+  { q: 'What is the fastest traveling entity in the physical universe in a vacuum?', opts: ['Speed of light (~300,000 km/s)', 'Sound waves', 'Solar wind plasma', 'Seismic P-waves'], ans: 0, exp: 'Light travels at c ≈ 299,792 km/s in a vacuum.' },
+  { q: 'What happens to the pressure of a gas when its temperature increases in a rigid sealed container?', opts: ['Pressure increases (Gay-Lussac’s Law)', 'Pressure decreases', 'Pressure stays constant', 'Pressure drops to zero'], ans: 0, exp: 'Higher kinetic molecular speed increases wall collision pressure.' },
+  { q: 'What is the biological definition of an ecosystem?', opts: ['A community of living organisms interacting with their physical environment', 'A group of only trees', 'A single animal species', 'The planetary core'], ans: 0, exp: 'Biotic and abiotic components interacting in a defined geographic habitat.' },
+  { q: 'Which metallic element is liquid at standard room temperature?', opts: ['Mercury (Hg)', 'Gallium', 'Bromine', 'Cesium'], ans: 0, exp: 'Mercury is a metal with a melting point of -38.8°C.' },
+  { q: 'What is the term for animals that maintain a constant internal body temperature regardless of environment?', opts: ['Endotherms (Warm-blooded)', 'Ectotherms (Cold-blooded)', 'Poikilotherms', 'Amphibians'], ans: 0, exp: 'Mammals and birds generate internal metabolic heat.' },
+  { q: 'Which human blood group is known as the universal red blood cell donor?', opts: ['O negative', 'AB positive', 'A positive', 'B negative'], ans: 0, exp: 'O- lacks A, B, and Rh antigens, minimizing transfusion reactions.' },
+  { q: 'What is the fundamental SI unit of electrical current?', opts: ['Ampere (A)', 'Volt (V)', 'Coulomb (C)', 'Joule (J)'], ans: 0, exp: 'Current flow rate is measured in Amperes.' },
+  { q: 'What is the process by which green plants manufacture carbohydrates using sunlight?', opts: ['Photosynthesis', 'Respiration', 'Transpiration', 'Fermentation'], ans: 0, exp: 'Chlorophyll absorbs sunlight to synthesize glucose from CO2 and water.' },
+  { q: 'What is the chemical formula of ozone gas in the upper atmosphere?', opts: ['O3', 'O2', 'CO', 'CH4'], ans: 0, exp: 'Ozone is a triatomic molecule made of three oxygen atoms.' },
+  { q: 'What is the law stating energy can neither be created nor destroyed, only transformed?', opts: ['First Law of Thermodynamics', 'Second Law of Thermodynamics', 'Hooke’s Law', 'Bernoulli’s Principle'], ans: 0, exp: 'Law of Conservation of Energy.' },
+  { q: 'Which human organ secretes insulin to regulate blood glucose levels?', opts: ['Pancreas', 'Gallbladder', 'Spleen', 'Thyroid'], ans: 0, exp: 'Islets of Langerhans in the pancreas secrete insulin.' },
+  { q: 'What is the primary cause of Earth’s ocean tides?', opts: ['Gravitational pull of the Moon and Sun', 'Atmospheric winds', 'Underwater volcanoes', 'Earth magnetic core'], ans: 0, exp: 'Lunar and solar gravitational tidal forces create high and low tides.' },
+  { q: 'What is the speed of sound in dry air at 20°C?', opts: ['Approximately 343 m/s', '150 m/s', '500 m/s', '300,000 m/s'], ans: 0, exp: 'Acoustic wave speed in air at 20°C is approximately 343 meters per second.' },
+  { q: 'What protective fluid covers the central nervous system brain and spinal cord?', opts: ['Cerebrospinal fluid', 'Synovial fluid', 'Amniotic fluid', 'Lymph'], ans: 0, exp: 'Cerebrospinal fluid cushions the brain against mechanical trauma.' },
+  { q: 'Which mineral is the primary structural component of human bones and teeth?', opts: ['Calcium hydroxyapatite', 'Sodium chloride', 'Potassium nitrate', 'Magnesium oxide'], ans: 0, exp: 'Calcium and phosphate form dense mineral bone matrix.' },
+  { q: 'What natural phenomenon produces the glowing aurora borealis near polar latitudes?', opts: ['Solar wind particles colliding with atmospheric gases', 'Moonlight reflection off polar ice', 'Lightning in the stratosphere', 'Volcanic dust in orbit'], ans: 0, exp: 'Charged solar particles excite oxygen and nitrogen in the upper atmosphere.' },
+];
 
-  // Q4: English
-  {
-    qNum: 4,
-    difficulty: 'Easy',
-    subject: 'english',
-    subjectLabel: 'English',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[3] : 1;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'Choose the past tense of “write.”',
-          opts: ['written', 'wrote', 'writes', 'writing'],
-          h: 'Simple past tense of write.',
-          exp: 'The past tense is "wrote".',
-        },
-        {
-          q: 'Choose the correct pronoun: “Ravi and ___ went home.”',
-          opts: ['me', 'I', 'mine', 'my'],
-          h: 'Subject pronoun required.',
-          exp: '"I" is the subject pronoun ("Ravi and I went home").',
-        },
-        {
-          q: 'Identify the adverb: “The bird flew gracefully.”',
-          opts: ['bird', 'flew', 'the', 'gracefully'],
-          h: 'Word ending in -ly describing how it flew.',
-          exp: '"Gracefully" modifies the verb "flew".',
-        },
-        {
-          q: 'Choose the correct preposition: “The book is ___ the table.”',
-          opts: ['on', 'at', 'by', 'from'],
-          h: 'Resting upon the surface.',
-          exp: '"On the table" indicates position on the surface.',
-        },
-        {
-          q: 'Choose the correct sentence.',
-          opts: ['They is ready.', 'They are ready.', 'They am ready.', 'They be ready.'],
-          h: 'Plural subject "They" takes "are".',
-          exp: '"They are ready" is grammatically correct.',
-        },
-        {
-          q: 'Choose the opposite of “ancient.”',
-          opts: ['old', 'historic', 'modern', 'early'],
-          h: 'Belonging to the present or recent times.',
-          exp: 'The antonym of ancient is modern.',
-        },
-        {
-          q: 'Choose the correct verb: “She ___ to school every day.”',
-          opts: ['go', 'goes', 'going', 'gone'],
-          h: 'Third-person singular takes -s / -es in simple present tense.',
-          exp: 'Subject "She" is singular, requiring "goes".',
-        },
-        {
-          q: 'Choose the correct article: “He ate ___ apple.”',
-          opts: ['a', 'an', 'the', 'no article'],
-          h: 'Words starting with vowel sounds take "an".',
-          exp: '"Apple" begins with a vowel sound, so "an" is required.',
-        },
-        {
-          q: 'Identify the adjective: “It was a beautiful day.”',
-          opts: ['It', 'was', 'beautiful', 'day'],
-          h: 'The word describing the noun "day".',
-          exp: '"Beautiful" describes the day, making it an adjective.',
-        },
-        {
-          q: 'Choose the plural of “child.”',
-          opts: ['childs', 'childes', 'children', 'childrens'],
-          h: 'Irregular plural form.',
-          exp: 'The plural of child is children.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
+// Q5: SOCIAL SCIENCE & TAMIL NADU GEOGRAPHY - 50 Unique Questions (Level 1 to 50)
+const SOCIAL_QUESTIONS = [
+  { q: 'Which major sea borders the eastern coastline of Tamil Nadu where cyclones frequently originate?', opts: ['Bay of Bengal', 'Arabian Sea', 'Indian Ocean', 'Red Sea'], ans: 0, exp: 'The Bay of Bengal lies east of Tamil Nadu, generating monsoonal tropical storms.' },
+  { q: 'Which coastal Tamil Nadu district suffered severe devastation during Cyclone Gaja in November 2018?', opts: ['Nagapattinam', 'Coimbatore', 'Salem', 'Dharmapuri'], ans: 0, exp: 'Nagapattinam and delta districts experienced catastrophic Category-3 winds.' },
+  { q: 'Which monsoon season brings the overwhelming majority of annual rainfall and cyclones to Tamil Nadu?', opts: ['North-East Monsoon (Oct-Dec)', 'South-West Monsoon (Jun-Sep)', 'Pre-monsoon summer', 'Winter westerly'], ans: 0, exp: 'North-East monsoon supplies over 60% of Tamil Nadu’s precipitation.' },
+  { q: 'What is the official toll-free telephone emergency helpline for Disaster Management in Tamil Nadu?', opts: ['1070', '100', '108', '101'], ans: 0, exp: 'State Disaster Management Authority helpline is 1070 (District is 1077).' },
+  { q: 'Which historic coastal city serves as the state capital and primary port of Tamil Nadu?', opts: ['Chennai', 'Madurai', 'Tiruchirappalli', 'Tirunelveli'], ans: 0, exp: 'Chennai (formerly Madras) is the capital and major metropolitan port.' },
+  { q: 'Which vast mangrove ecosystem in Cuddalore district serves as a natural bio-shield against cyclones?', opts: ['Pichavaram Mangrove Forest', 'Mundanthurai Sanctuary', 'Mudumalai Forest', 'Anamalai Reserve'], ans: 0, exp: 'Pichavaram is one of the world’s largest mangrove forests, dampening storm surges.' },
+  { q: 'Which historic cyclone completely destroyed the coastal town of Dhanushkodi in December 1964?', opts: ['1964 Rameswaram Cyclone', 'Cyclone Vardah', 'Cyclone Thane', 'Cyclone Ockhi'], ans: 0, exp: 'The 1964 cyclone swept across Dhanushkodi on Pamban Island.' },
+  { q: 'What shallow maritime strait separates coastal Tamil Nadu from the northern tip of Sri Lanka?', opts: ['Palk Strait', 'Strait of Malacca', 'Strait of Gibraltar', 'Bering Strait'], ans: 0, exp: 'Palk Strait connects the Bay of Bengal with Palk Bay between India and Sri Lanka.' },
+  { q: 'Which major river delta in Tamil Nadu is famously designated as the “Granary of South India”?', opts: ['Kaveri Delta (Thanjavur)', 'Vaigai Delta', 'Thamirabarani Basin', 'Palar Basin'], ans: 0, exp: 'The fertile Kaveri delta produces intensive paddy rice cultivation.' },
+  { q: 'What specialized federal disaster response organization deploys during major Indian cyclonic events?', opts: ['NDRF (National Disaster Response Force)', 'Coast Guard Reserve only', 'Border Security Force', 'Civil Aviation Board'], ans: 0, exp: 'NDRF battalions conduct dedicated search, rescue, and flood evacuation.' },
+  { q: 'Which coastal district of Tamil Nadu is home to the landmark Shore Temple at Mamallapuram?', opts: ['Chengalpattu', 'Villupuram', 'Ramanathapuram', 'Kanyakumari'], ans: 0, exp: 'Mamallapuram (Mahabalipuram) is located in Chengalpattu district.' },
+  { q: 'What is the southernmost tip of mainland India situated in Tamil Nadu called?', opts: ['Kanyakumari (Cape Comorin)', 'Dhanushkodi', 'Point Calimere', 'Tuticorin'], ans: 0, exp: 'Kanyakumari is the tri-junction of the Bay of Bengal, Arabian Sea, and Indian Ocean.' },
+  { q: 'Which severe cyclone made direct landfall near Cuddalore and Puducherry in December 2011?', opts: ['Cyclone Thane', 'Cyclone Vardah', 'Cyclone Gaja', 'Cyclone Nivar'], ans: 0, exp: 'Cyclone Thane hit Cuddalore with 140 km/h winds, uprooting trees.' },
+  { q: 'Which category-3 cyclone struck Chennai and northern coastal districts in December 2016?', opts: ['Cyclone Vardah', 'Cyclone Ockhi', 'Cyclone Nilam', 'Cyclone Burevi'], ans: 0, exp: 'Cyclone Vardah brought intense winds to Chennai, knocking out telecommunications.' },
+  { q: 'Which major seaport in southern Tamil Nadu is renowned as the “Pearl City”?', opts: ['Thoothukudi (Tuticorin)', 'Cuddalore', 'Ennore', 'Kattupalli'], ans: 0, exp: 'Thoothukudi is historically famous for natural pearl diving and shipping.' },
+  { q: 'What international body coordinates maritime search, rescue, and nautical disaster codes worldwide?', opts: ['International Maritime Organization (IMO)', 'WHO', 'UNESCO', 'Interpol'], ans: 0, exp: 'IMO establishes global safety regulations for ships and distress rescue.' },
+  { q: 'Which national meteorological agency issues official cyclone warnings across India?', opts: ['India Meteorological Department (IMD)', 'ISRO only', 'Survey of India', 'Geological Survey'], ans: 0, exp: 'IMD operates meteorological radars, satellites, and tropical cyclone warning centers.' },
+  { q: 'What is the coastal wildlife sanctuary located at Point Calimere in Nagapattinam district called?', opts: ['Kodiakkarai Sanctuary', 'Guindy Park', 'Vedanthangal', 'Point Hope'], ans: 0, exp: 'Kodiakkarai (Point Calimere) provides habitat for flamingos and blackbuck.' },
+  { q: 'Which major Tamil Nadu river flows through the historic temple city of Madurai?', opts: ['Vaigai River', 'Kaveri River', 'Bhavani River', 'Amaravathi River'], ans: 0, exp: 'The Vaigai River originates in the Western Ghats and flows through Madurai.' },
+  { q: 'Which mountain range forms the Western boundary of Tamil Nadu and influences regional climate?', opts: ['Western Ghats (Sahyadri)', 'Eastern Ghats', 'Himalayas', 'Aravalli Range'], ans: 0, exp: 'The Western Ghats block southwest monsoon winds, creating a rain-shadow zone.' },
+  { q: 'What is the famous engineering rail bridge connecting mainland Tamil Nadu to Rameswaram island?', opts: ['Pamban Bridge', 'Vidyasagar Setu', 'Bandra-Worli Bridge', 'Howrah Bridge'], ans: 0, exp: 'Pamban Rail Bridge spans the Palk Strait with an opening cantilever span.' },
+  { q: 'Which coastal district of Tamil Nadu contains the prominent port of Karaikal nearby?', opts: ['Nagapattinam / Mayiladuthurai', 'Erode', 'Tirupur', 'Karur'], ans: 0, exp: 'Nagapattinam surrounds the enclave of Karaikal on the Coromandel coast.' },
+  { q: 'Which major atomic power station in Tamil Nadu is engineered with massive cyclone-proof seawalls?', opts: ['Kudankulam Nuclear Power Plant', 'Narora Plant', 'Tarapur Plant', 'Kaiga Plant'], ans: 0, exp: 'Kudankulam in Tirunelveli district has reinforced coastal tsunami and cyclone barriers.' },
+  { q: 'What is the primary agricultural crop cultivated across the coastal river basins of Tamil Nadu?', opts: ['Paddy (Rice)', 'Wheat', 'Barley', 'Cotton only'], ans: 0, exp: 'Paddy is the staple food grain grown extensively in Tamil Nadu.' },
+  { q: 'Which ancient Tamil dynasty ruled the Coromandel coast and was renowned for naval expeditions across Asia?', opts: ['Chola Dynasty', 'Chera Dynasty', 'Pallava Dynasty', 'Pandya Dynasty'], ans: 0, exp: 'The Cholas maintained a formidable maritime navy under Rajaraja I and Rajendra I.' },
+  { q: 'What was the ancient port city of the Early Cholas near the mouth of the Kaveri river?', opts: ['Poompuhar (Kaveripoompattinam)', 'Korkai', 'Muziris', 'Alagankulam'], ans: 0, exp: 'Poompuhar was a bustling ancient international trade port described in Silappadikaram.' },
+  { q: 'What was the primary coastal pearl fishery port of the Early Pandyas in southern Tamil Nadu?', opts: ['Korkai', 'Urayur', 'Kanchipuram', 'Vanchi'], ans: 0, exp: 'Korkai in Thoothukudi was the renowned pearl harbor of the Pandyan kingdom.' },
+  { q: 'Which bird sanctuary in Tamil Nadu is famous for migratory waterbirds arriving during the North-East monsoon?', opts: ['Vedanthangal Bird Sanctuary', 'Mudumalai', 'Sathyamangalam', 'Kalakkad'], ans: 0, exp: 'Vedanthangal is one of India’s oldest waterbird sanctuaries (~1798).' },
+  { q: 'What is the term for the flat coastal plain along the southeastern coast of India including Tamil Nadu?', opts: ['Coromandel Coast (Cholamandalam)', 'Malabar Coast', 'Konkan Coast', 'Canara Coast'], ans: 0, exp: 'The Coromandel Coast extends along the Bay of Bengal from Andhra to Kanyakumari.' },
+  { q: 'Which hill station in the Western Ghats of Tamil Nadu is known as the “Queen of Hill Stations”?', opts: ['Udhagamandalam (Ooty)', 'Kodaikanal', 'Yercaud', 'Valparai'], ans: 0, exp: 'Ooty (Udhagamandalam) in the Nilgiri hills.' },
+  { q: 'Which hill station in Dindigul district of Tamil Nadu is nicknamed the “Princess of Hill Stations”?', opts: ['Kodaikanal', 'Ooty', 'Kotagiri', 'Coonoor'], ans: 0, exp: 'Kodaikanal is nestled in the Palani hills of Dindigul.' },
+  { q: 'What is the dedicated emergency ambulance phone number across Tamil Nadu?', opts: ['108', '100', '101', '102'], ans: 0, exp: '108 is the free emergency medical response ambulance service.' },
+  { q: 'What is the emergency phone number for Fire and Rescue Services in Tamil Nadu?', opts: ['101', '100', '108', '102'], ans: 0, exp: '101 reaches the Fire and Rescue Department.' },
+  { q: 'What is the police emergency contact number in Tamil Nadu?', opts: ['100', '101', '108', '102'], ans: 0, exp: '100 is the nationwide emergency police hotline.' },
+  { q: 'Which major port north of Chennai handles coal and iron ore logistics for Tamil Nadu?', opts: ['Kamarajar Port (Ennore)', 'Vizag Port', 'Cochin Port', 'Mangalore Port'], ans: 0, exp: 'Kamarajar Port at Ennore is a major corporatized gateway port.' },
+  { q: 'Which severe cyclone in November 2020 struck Marakkanam between Puducherry and Tamil Nadu?', opts: ['Cyclone Nivar', 'Cyclone Vardah', 'Cyclone Gaja', 'Cyclone Ockhi'], ans: 0, exp: 'Cyclone Nivar made landfall near Marakkanam with heavy torrential rains.' },
+  { q: 'What is the official state animal of Tamil Nadu that lives in the high cliff peaks of the Western Ghats?', opts: ['Nilgiri Tahr', 'Bengal Tiger', 'Indian Elephant', 'Spotted Deer'], ans: 0, exp: 'The Nilgiri Tahr (Nilgiritragus hylocrius) is an endangered mountain ungulate.' },
+  { q: 'Which coastal district of Tamil Nadu is famed for the Nataraja temple at Chidambaram?', opts: ['Cuddalore', 'Thanjavur', 'Madurai', 'Tiruvannamalai'], ans: 0, exp: 'Chidambaram is situated in Cuddalore district.' },
+  { q: 'What is the primary wind direction of the North-East Monsoon over coastal Tamil Nadu?', opts: ['From North-East towards South-West', 'From West towards East', 'From South towards North', 'From North-West to South-East'], ans: 0, exp: 'Winds blow from the high pressure over Siberia/Himalayas across the Bay of Bengal.' },
+  { q: 'Which traditional Tamil community emergency warning instrument was beaten in villages to signal danger?', opts: ['Murasu (War & Alarm Drum)', 'Veena', 'Flute', 'Nadaswaram'], ans: 0, exp: 'The Murasu drum was sounded from temple towers to warn of floods and enemy attacks.' },
+  { q: 'Which coastal district of Tamil Nadu was ground zero for the catastrophic Indian Ocean tsunami of 2004?', opts: ['Nagapattinam', 'Tirunelveli', 'Kancheepuram', 'Dharmapuri'], ans: 0, exp: 'Nagapattinam suffered the highest casualties in India during the 2004 tsunami.' },
+  { q: 'What is the administrative unit into which Tamil Nadu districts are subdivided for revenue and relief administration?', opts: ['Taluks', 'Wards only', 'Parishes', 'Cantons'], ans: 0, exp: 'Districts are divided into Taluks administered by Tahsildars.' },
+  { q: 'What is the role of a Village Administrative Officer (VAO) during a coastal cyclone emergency?', opts: ['Enact evacuation warnings, monitor relief camps, and report local flood damage', 'Fly rescue aircraft', 'Repair power substations', 'Direct naval battleships'], ans: 0, exp: 'The VAO is the primary frontline government administrator in rural Tamil Nadu.' },
+  { q: 'Which river in southern Tamil Nadu is renowned as the only perennial river originating and ending in the state?', opts: ['Thamirabarani River', 'Palar River', 'Vaigai River', 'Pennaiyar River'], ans: 0, exp: 'The Thamirabarani originates in Pothigai hills and flows through Tirunelveli and Thoothukudi.' },
+  { q: 'Which dam on the Kaveri river in Salem district is one of Tamil Nadu’s largest water reservoirs?', opts: ['Mettur Dam (Stanley Reservoir)', 'Bhavanisagar Dam', 'Aliyar Dam', 'Sathanur Dam'], ans: 0, exp: 'Mettur Dam regulates irrigation flow across the Kaveri delta.' },
+  { q: 'Which coastal region of Tamil Nadu is characterized by red sand dunes known locally as “Teri” sands?', opts: ['Thoothukudi / Tirunelveli coast', 'Chennai coast', 'Cuddalore coast', 'Kanchipuram coast'], ans: 0, exp: 'Teri dunes are unique geological red quartz sand deposits in southern Tamil Nadu.' },
+  { q: 'What is the legal authority responsible for executing disaster management plans across India under the 2005 Act?', opts: ['NDMA (National Disaster Management Authority)', 'NITI Aayog', 'Election Commission', 'Central Vigilance Commission'], ans: 0, exp: 'NDMA was established under the Disaster Management Act of 2005.' },
+  { q: 'Who heads the State Disaster Management Authority (SDMA) in Tamil Nadu?', opts: ['Chief Minister of the State', 'Chief of Police', 'District Collector', 'Health Minister'], ans: 0, exp: 'The Chief Minister serves as ex-officio chairperson of the SDMA.' },
+  { q: 'Who heads the District Disaster Management Authority (DDMA) during coastal cyclone alerts?', opts: ['District Collector (Magistrate)', 'Mayor only', 'Port Officer', 'Chief Engineer'], ans: 0, exp: 'The District Collector has executive command of all relief and emergency forces.' },
+  { q: 'What is the primary motto of youth disaster response volunteers in coastal schools and colleges?', opts: ['Preparedness, Resilience, and Service', 'Profit and Trade', 'Speed over Safety', 'Silence and Seclusion'], ans: 0, exp: 'Community disaster resilience emphasizes proactive preparedness and humanitarian service.' },
+];
 
-  // Q5: Mathematics
-  {
-    qNum: 5,
-    difficulty: 'Easy',
-    subject: 'mathematics',
-    subjectLabel: 'Mathematics',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[4] : 0;
-      const c7 = (level - 1) % 7;
+// Q6: CYCLONE PREPAREDNESS & DISASTER SAFETY - 50 Unique Questions (Level 1 to 50)
+const DISASTER_QUESTIONS = [
+  { q: 'What color alert does the Meteorological Department issue when cyclone landfall is imminent within 24 hours?', opts: ['Red Alert', 'Yellow Alert', 'Green Alert', 'White Alert'], ans: 0, exp: 'Red Alert signifies severe cyclonic weather requiring immediate emergency action.' },
+  { q: 'Before severe cyclone landfall, what should homeowners do with loose external objects and tin sheets?', opts: ['Tie down or store loose objects indoors and brace windows', 'Leave them outside on roof', 'Scatter them across the yard', 'Paint them with oil'], ans: 0, exp: 'Unsecured objects become lethal airborne missiles in 100+ km/h gale winds.' },
+  { q: 'Why is wading or driving through cyclone floodwaters extremely hazardous after the storm passes?', opts: ['Risk of electrocution from downed power lines and hidden sinkholes', 'Floodwaters are too cold', 'Water destroys tire rubber instantly', 'Fish might bite'], ans: 0, exp: 'Submerged live electrical cables and washed-away road surfaces cause severe casualties.' },
+  { q: 'Which item is essential to include in a 72-hour family emergency disaster survival kit?', opts: ['Battery-powered radio, flashlight, non-perishable food, and clean water', 'Television monitor', 'Heavy steel furniture', 'Air conditioner'], ans: 0, exp: 'Transistor radios and basic rations maintain communications and sustenance when grids fail.' },
+  { q: 'During the passage of the cyclone’s calm “Eye”, what critical mistake do many survivors make?', opts: ['Assuming the storm has ended and venturing outside into the violent reverse eyewall', 'Going to sleep', 'Drinking clean water', 'Turning on radio'], ans: 0, exp: 'Winds return suddenly from the opposite direction with maximum destructive fury.' },
+  { q: 'What urgent action must deep-sea fishermen take when a cyclone alert message is broadcast over VHF radio?', opts: ['Immediately return to the nearest harbor or sheltered inlet', 'Head further into deep water', 'Anchor in open sea', 'Turn off communication'], ans: 0, exp: 'High swell waves and hurricane gales capsize small craft in open ocean waters.' },
+  { q: 'What is a cyclonic storm surge?', opts: ['An abnormal rise of ocean water pushed ashore by cyclonic winds and low pressure', 'A tsunami caused by volcanic eruption', 'A high tide caused only by the full moon', 'A flash flood from mountain springs'], ans: 0, exp: 'Storm surges can elevate coastal sea levels by 3 to 6 meters, inundating low-lying towns.' },
+  { q: 'What does an IMD “Yellow Alert” (Cyclone Watch) represent?', opts: ['Advisory: Be aware of deteriorating weather over the next 48 to 72 hours', 'Evacuate immediately', 'All clear and safe', 'Schools closed permanently'], ans: 0, exp: 'Yellow is an early watch stage signaling authorities and citizens to review readiness.' },
+  { q: 'How can contaminated floodwater be made biologically safe for emergency drinking in the absence of filters?', opts: ['Bring to a vigorous rolling boil for at least 1 minute (or add chlorine tablets)', 'Let it settle in the sun for 10 minutes', 'Add raw salt', 'Freeze into ice'], ans: 0, exp: 'Boiling destroys bacteria, viruses, and parasites causing cholera and typhoid.' },
+  { q: 'In basic emergency First Aid CPR, what is the standard recommended ratio of chest compressions to rescue breaths?', opts: ['30 compressions to 2 breaths', '15 compressions to 5 breaths', '50 compressions to 1 breath', '10 compressions to 10 breaths'], ans: 0, exp: 'Standard CPR protocol for adults is 30 continuous compressions followed by 2 rescue breaths.' },
+  { q: 'If your home shelter roof begins to vibrate violently in hurricane gales, what should you do?', opts: ['Retreat into an interior windowless room (hallway or reinforced bathroom) on lowest floor', 'Stand on the roof to hold it down', 'Open all doors and windows wide', 'Climb onto the attic'], ans: 0, exp: 'Interior walls provide structural shielding against falling roof debris.' },
+  { q: 'Why should residents unplug electrical appliances and turn off the main circuit breaker before cyclone landfall?', opts: ['To prevent electrical fires, power surge damage, and electrocution from flooding', 'To save electricity bill', 'To let wires cool down', 'To increase storm wind speed'], ans: 0, exp: 'Water contacting energized sockets causes short-circuits and structural fires.' },
+  { q: 'What is the safest way to store important personal documents (birth certificates, deeds, ID) during a cyclone?', opts: ['In sealed waterproof plastic zip bags inside a portable emergency bag', 'In open cardboard boxes on the floor', 'Taped to exterior windows', 'Under the garden shed'], ans: 0, exp: 'Waterproof bags safeguard legal papers against deluge and storm surge soaking.' },
+  { q: 'Which telephone network frequency or method is most reliable for rescue communication when mobile cell towers fail?', opts: ['VHF/UHF battery transceivers and satellite emergency phones', 'High-speed 5G streaming', 'Fiber-optic residential cables', 'Landline copper cords only'], ans: 0, exp: 'Direct radio-frequency walkie-talkies operate peer-to-peer without telecom towers.' },
+  { q: 'Why should candle flames be used with extreme caution inside disaster shelters?', opts: ['Risk of igniting structural fires or ruptured LPG gas leaks; battery torches are safer', 'Candles consume all room oxygen in seconds', 'Candles attract lightning bolts', 'Wax ruins floors'], ans: 0, exp: 'Fallen candles frequently cause fatal residential fires during storm power outages.' },
+  { q: 'What should families with livestock and pets do prior to cyclonic landfall?', opts: ['Unchain or untie animals so they can reach higher ground, and shelter small pets indoors', 'Lock them in low-lying shed cages', 'Tie them to coastal trees', 'Leave them near the beach'], ans: 0, exp: 'Tied livestock drown helplessly in rising storm surge water; unchained animals seek high terrain.' },
+  { q: 'What is the primary danger associated with cyclone “aftermath” debris clearing?', opts: ['Tetanus from rusty nails, fallen electrical wires, and unstable collapsed walls', 'Too much sunshine', 'Cold breezes', 'Mosquitoes only'], ans: 0, exp: 'Puncture wounds from corrugated zinc sheets and hidden wires cause severe injuries.' },
+  { q: 'If stranded in a vehicle during flash flood surge, what should the driver do if water starts rising above wheels?', opts: ['Abandon vehicle immediately and climb to higher ground', 'Stay inside with doors locked and windows rolled up', 'Drive faster through the current', 'Wait in trunk'], ans: 0, exp: 'Moving water just 30 cm deep can float and sweep away cars into rivers.' },
+  { q: 'What is Oral Rehydration Salts (ORS) solution primarily used for in disaster relief camps?', opts: ['Treating acute dehydration caused by diarrhea and heat exhaustion', 'Cleaning external wounds', 'Washing vegetables', 'Cooking rice'], ans: 0, exp: 'ORS restores essential electrolytes (sodium, potassium) and glucose during dehydration.' },
+  { q: 'What should coastal residents do immediately if they notice the ocean suddenly receding far offshore?', opts: ['Run immediately inland to high ground (tsunami / surge warning)', 'Walk onto the exposed seabed to collect shells', 'Take photos on the beach', 'Dock small boats deeper in water'], ans: 0, exp: 'A sudden sea drawback is the classic precursor to an incoming destructive tsunami wave.' },
+  { q: 'Why is it critical to avoid sheltering under large trees or advertising hoardings during cyclonic winds?', opts: ['Heavy branches and iron hoardings can snap and fall, causing fatal crush injuries', 'Trees attract heavy rain', 'Hoardings reflect sound waves', 'Trees block the wind view'], ans: 0, exp: 'Tree falls are the leading cause of trauma deaths during Category 1-3 cyclones.' },
+  { q: 'What is the recommended minimum supply of drinking water stored per person per day for disaster preparedness?', opts: ['At least 3 to 4 liters per person per day for 3 days', '500 ml total per week', '20 liters per hour', '1 cup per day'], ans: 0, exp: '3-4 liters satisfies drinking, sanitation, and minimal food preparation needs.' },
+  { q: 'How should deep bleeding wounds be managed immediately before professional paramedics arrive?', opts: ['Apply firm direct pressure with a clean sterile cloth or pressure bandage', 'Wash with muddy water', 'Leave exposed to air', 'Apply powdered spices'], ans: 0, exp: 'Direct sustained pressure stanches arterial and venous hemorrhaging.' },
+  { q: 'What is an IMD “Orange Alert” signal indicating?', opts: ['Be Prepared: Severe weather with high risk of transport and utility disruption', 'Everything is normal', 'Evacuation completed', 'No action needed'], ans: 0, exp: 'Orange requires authorities to mobilize relief teams and citizens to prepare shelters.' },
+  { q: 'Which domestic gas valve should be shut off tightly before evacuating a residence?', opts: ['LPG cylinder regulator valve', 'Water meter', 'Solar inverter switch only', 'Television remote'], ans: 0, exp: 'Securing the LPG valve eliminates gas leak explosions if pipelines break.' },
+  { q: 'What is the role of coastal cyclone multi-purpose shelters constructed in Tamil Nadu?', opts: ['Provide elevated, structurally reinforced safe havens above maximum storm surge levels', 'Serve as shopping malls', 'Store commercial fishing nets permanently', 'House luxury hotels'], ans: 0, exp: 'Engineered multi-purpose shelters save thousands of coastal lives during extreme weather.' },
+  { q: 'Why should residents monitor official meteorological radio and television broadcasts rather than social media rumors?', opts: ['To prevent panic and receive verified evacuation routes and shelter locations', 'Because radios are cheaper', 'Because social media has better graphics', 'To test audio speakers'], ans: 0, exp: 'Rumors lead to dangerous travel into flood zones; official advisories are meteorologist-verified.' },
+  { q: 'What should be done if someone suffers an electric shock from a fallen power line?', opts: ['Do not touch the victim directly; de-energize source or use a dry non-conductive wooden pole', 'Pull them with bare wet hands', 'Throw water on them', 'Push them with a metal bar'], ans: 0, exp: 'Touching a victim conducting electricity electrocutes the rescuer.' },
+  { q: 'What type of footwear is recommended when inspecting structural storm damage outside after a cyclone?', opts: ['Sturdy closed-toe thick-soled leather or rubber work boots', 'Barefoot', 'Thin plastic flip-flops', 'Silk socks only'], ans: 0, exp: 'Protects against puncture wounds from glass shards, sharp nails, and thorn debris.' },
+  { q: 'Why should emergency shelters maintain separate sanitation facilities for men, women, and children?', opts: ['To ensure dignity, privacy, and hygiene safety, preventing infectious outbreaks', 'To consume more water', 'To make building look bigger', 'For decoration'], ans: 0, exp: 'Basic humanitarian standards prioritize sanitation safety and disease prevention.' },
+  { q: 'What is the primary treatment for hypothermia in a survivor soaked in cold cyclone rain?', opts: ['Remove wet clothing, wrap in dry warm blankets, and provide warm sweetened fluids', 'Submerge in boiling water', 'Rub vigorously with snow', 'Feed cold ice cream'], ans: 0, exp: 'Gradual passive external rewarming restores core temperature safely.' },
+  { q: 'How often should stored emergency battery packs and torches be tested and cycled?', opts: ['Every 3 to 6 months', 'Once every 10 years', 'Only during an active storm', 'Never test batteries'], ans: 0, exp: 'Regular testing ensures electrochemical charge is intact when disaster strikes.' },
+  { q: 'What should coastal communities plant along beaches to reduce wind erosion and dissipate storm waves?', opts: ['Casuarina shelterbelts and coastal mangrove vegetation', 'Tall concrete walls without drainage', 'Plastic grass', 'Cotton plants'], ans: 0, exp: 'Casuarina plantations act as natural windbreaks and anchor beach sands.' },
+  { q: 'What does a flashing red flare fired into the night sky indicate in international maritime distress?', opts: ['Vessel or survivor in grave and imminent danger requiring immediate rescue', 'Celebrating safe arrival', 'Testing flare guns for fun', 'Indicating calm weather'], ans: 0, exp: 'Red parachute and handheld flares are standardized universal distress beacons.' },
+  { q: 'What should you do if caught in the open during an electrical thunderstorm with no shelter nearby?', opts: ['Crouch low on balls of feet with feet together, head tucked, avoiding tall solitary trees', 'Lie completely flat in a puddle', 'Hold up an umbrella with metal tip', 'Climb the tallest tree'], ans: 0, exp: 'Lightning squat minimizes surface contact and height exposure.' },
+  { q: 'Why must emergency food provisions consist of non-perishable ready-to-eat items (canned goods, biscuits)?', opts: ['Cooking fuel, municipal gas, and electricity may be entirely unavailable for days', 'They taste sweeter', 'They weigh more', 'Cans attract radio waves'], ans: 0, exp: 'Ready-to-eat rations require neither heat nor clean cooking water.' },
+  { q: 'How should broken glass windows in a home shelter be temporarily patched during gale gusts?', opts: ['Board up with plywood sheets from inside or reinforce with heavy tape crisscross', 'Leave them shattered', 'Cover with thin paper', 'Push against them with bare hands'], ans: 0, exp: 'Plywood and duct tape reduce splintering into high-velocity glass daggers.' },
+  { q: 'What is the primary role of the Indian Coast Guard during coastal cyclones in the Bay of Bengal?', opts: ['Air-sea search and rescue, pre-storm fisherman recall, and offshore relief logistics', 'Commercial deep-sea fishing', 'Building coastal hotels', 'Customs taxation only'], ans: 0, exp: 'The Coast Guard deploys cutters, hovercraft, and helicopters for maritime rescue.' },
+  { q: 'Why are zinc and asbestos corrugated sheets particularly dangerous during super cyclones?', opts: ['They easily tear loose in 120+ km/h winds and act as flying blades that can sever limbs', 'They melt in rain', 'They are too heavy to blow away', 'They attract thunder'], ans: 0, exp: 'Unanchored sheet metal causes catastrophic projectile injuries in coastal villages.' },
+  { q: 'What does the term “Vulnerable Population” encompass in community disaster evacuations?', opts: ['Infants, elderly citizens, pregnant mothers, and individuals with disabilities or illnesses', 'Government officials only', 'Military personnel', 'Weather scientists'], ans: 0, exp: 'These groups require priority assistance, transportation, and specialized medical supplies.' },
+  { q: 'What is the safest water container type for storing emergency drinking supplies?', opts: ['Food-grade BPA-free sealed plastic containers or stainless steel cans', 'Open metal paint cans', 'Lead-soldered cisterns', 'Disposable thin polythene bags'], ans: 0, exp: 'Prevents chemical leaching and airborne bacterial contamination.' },
+  { q: 'What is the purpose of tying cross-diagonal bracing across wooden shelter framework pillars?', opts: ['Triangulation resists lateral wind shear and prevents building collapse', 'To make room look artistic', 'To save on nails', 'To hang clothes'], ans: 0, exp: 'Triangular diagonal braces prevent quadrilateral framing from racking and flattening.' },
+  { q: 'What is the danger of running petrol or diesel generators inside an enclosed room or garage?', opts: ['Lethal, odorless Carbon Monoxide (CO) gas poisoning', 'It produces too much light', 'Gasoline makes air too humid', 'It attracts rain inside'], ans: 0, exp: 'Generators must strictly operate outdoors in well-ventilated areas away from windows.' },
+  { q: 'What should be done if floodwaters submerge municipal sewer manholes in village streets?', opts: ['Avoid the area entirely; suction vortexes can pull pedestrians into storm drains', 'Swim across them', 'Fish inside them', 'Stand over the opening'], ans: 0, exp: 'Displaced manhole covers create deadly underwater suction hazards.' },
+  { q: 'Which agency coordinates international relief supplies and emergency health responses across disaster zones?', opts: ['United Nations Disaster Assessment and Coordination (UNDAC) & WHO', 'International Olympic Committee', 'Federal Reserve', 'FIFA'], ans: 0, exp: 'UN agencies channel humanitarian aid, medical teams, and emergency shelters globally.' },
+  { q: 'What color flag is hoisted at maritime ports when a severe cyclonic storm is expected to cross the coast near the port?', opts: ['Local Warning Signal Flag No. 8 or 9 (Danger / Great Danger)', 'White Flag', 'Green Flag', 'Blue Flag'], ans: 0, exp: 'Standard port danger flags 8, 9, 10 indicate imminent severe cyclonic landfall.' },
+  { q: 'What should you do if an earthquake tremor strikes coastal areas during an active cyclone?', opts: ['Drop, Cover, and Hold On beneath a sturdy desk away from glass windows', 'Run into the street under power lines', 'Jump out of upper floor windows', 'Stand directly under chandeliers'], ans: 0, exp: 'Drop, Cover, and Hold On shields head and vital organs from ceiling debris.' },
+  { q: 'Why is chlorinated lime (bleaching powder) spread across flooded village pathways after floodwaters recede?', opts: ['To sanitize soil, kill cholera bacteria, and suppress foul odors', 'To whiten the mud for aesthetics', 'To fertilize grass', 'To make ground slippery'], ans: 0, exp: 'Bleaching powder is an effective, economical post-flood disinfectant.' },
+  { q: 'What should coastal communities establish to ensure continuous communication during disasters?', opts: ['A community ham radio / VHF emergency amateur radio network', 'Only one mobile phone', 'Smoke signals', 'Messenger pigeons'], ans: 0, exp: 'Amateur radio operators (HAM) provide resilient backup when telecom infrastructure collapses.' },
+  { q: 'What is the fundamental golden rule of personal survival in natural disasters?', opts: ['Prioritize human life safety above material possessions, stay calm, and follow verified emergency instructions', 'Never leave personal furniture behind', 'Wait until water reaches roof before acting', 'Panic and scream'], ans: 0, exp: 'Property can be replaced; human lives cannot. Calm, early action ensures survival.' },
+];
 
-      if (c7 === 0) {
-        const k = Math.floor((level - 1) / 7);
-        const a = 9 + 7 * k;
-        const b = 13 + 7 * k;
-        const c = 17 + 7 * k;
-        const sum = a + b + c;
-        return {
-          question: `Find the sum of ${a}, ${b} and ${c}.`,
-          options: [`${sum}`, `${sum + 5}`, `${sum - 4}`, `${sum + 10}`],
-          correctIndex: correctIdx,
-          hint: 'Add the three numbers together.',
-          explanation: `${a} + ${b} + ${c} = ${sum}.`,
-        };
-      } else if (c7 === 1) {
-        const k = Math.floor((level - 2) / 7);
-        const a = 14 + 14 * k;
-        const b = 24 + 14 * k;
-        const c = 34 + 14 * k;
-        const avg = b;
-        return {
-          question: `Find the average of ${a}, ${b} and ${c}.`,
-          options: [`${avg + 5}`, `${avg}`, `${avg - 2}`, `${avg + 10}`],
-          correctIndex: correctIdx,
-          hint: 'Sum the three values and divide by 3.',
-          explanation: `(${a} + ${b} + ${c}) / 3 = ${avg}.`,
-        };
-      } else if (c7 === 2) {
-        if (level === 3 || level === 38) {
-          return {
-            question: 'What is sin 30°?',
-            options: ['0', '√2/2', '1/2', '√3/2'],
-            correctIndex: correctIdx,
-            hint: 'Standard trigonometry angle value.',
-            explanation: 'sin(30°) = 1/2.',
-          };
-        } else if (level === 10 || level === 45) {
-          return {
-            question: 'What is sin 45°?',
-            options: correctIdx === 0 ? ['√2/2', '1/2', '√3/2', '0'] : ['1/2', '√2/2', '√3/2', '0'],
-            correctIndex: correctIdx,
-            hint: 'Standard trigonometry angle value.',
-            explanation: 'sin(45°) = √2/2.',
-          };
-        } else if (level === 17) {
-          return {
-            question: 'What is sin 60°?',
-            options: ['√2/2', '0', '1/2', '√3/2'],
-            correctIndex: correctIdx,
-            hint: 'Standard trigonometry angle value.',
-            explanation: 'sin(60°) = √3/2.',
-          };
-        } else if (level === 24) {
-          return {
-            question: 'What is sin 90°?',
-            options: ['√2/2', '1/2', '0', '1'],
-            correctIndex: correctIdx,
-            hint: 'Standard trigonometry angle value.',
-            explanation: 'sin(90°) = 1.',
-          };
-        } else {
-          return {
-            question: 'What is sin 0°?',
-            options: ['1/2', '0', '√3/2', '√2/2'],
-            correctIndex: correctIdx,
-            hint: 'Standard trigonometry angle value.',
-            explanation: 'sin(0°) = 0.',
-          };
-        }
-      } else if (c7 === 3) {
-        const matMap: Record<number, { m: number[][]; det: number }> = {
-          4: { m: [[6, 1], [5, 3]], det: 13 },
-          11: { m: [[3, 4], [2, 6]], det: 10 },
-          18: { m: [[5, 3], [4, 5]], det: 13 },
-          25: { m: [[2, 2], [1, 4]], det: 6 },
-          32: { m: [[4, 1], [3, 3]], det: 9 },
-          39: { m: [[6, 4], [5, 6]], det: 16 },
-          46: { m: [[3, 3], [2, 5]], det: 9 },
-        };
-        const entry = matMap[level] || { m: [[6, 1], [5, 3]], det: 13 };
-        return {
-          question: `Find the determinant of [[${entry.m[0][0]}, ${entry.m[0][1]}], [${entry.m[1][0]}, ${entry.m[1][1]}]].`,
-          options: [`${entry.det}`, `${entry.det + 2}`, `${entry.det - 2}`, `-${entry.det}`],
-          correctIndex: correctIdx,
-          hint: 'ad - bc = (a × d) - (b × c).',
-          explanation: `Determinant is ${entry.det}.`,
-        };
-      } else if (c7 === 4) {
-        const eqMap: Record<number, { k: number; ans: number }> = {
-          5: { k: 4, ans: 7 },
-          12: { k: 2, ans: 5 },
-          19: { k: 0, ans: 3 },
-          26: { k: 7, ans: 10 },
-          33: { k: 5, ans: 8 },
-          40: { k: 3, ans: 6 },
-          47: { k: 1, ans: 4 },
-        };
-        const entry = eqMap[level] || { k: 4, ans: 7 };
-        return {
-          question: `Solve: x − 3 = ${entry.k}.`,
-          options: [`${entry.ans}`, `${entry.ans + 3}`, `${entry.ans + 4}`, `${entry.ans + 2}`],
-          correctIndex: correctIdx,
-          hint: `Add 3 to both sides: x = ${entry.k} + 3.`,
-          explanation: `x = ${entry.k} + 3 = ${entry.ans}.`,
-        };
-      } else if (c7 === 5) {
-        if (level === 6 || level === 34) {
-          return {
-            question: 'A bag has 3 red and 4 blue balls. What is the probability of picking a red ball?',
-            options: ['4/7', '1/2', '1', '3/7'],
-            correctIndex: correctIdx,
-            hint: 'Favorable outcomes / total outcomes = 3 / (3 + 4).',
-            explanation: 'P(red) = 3 / 7.',
-          };
-        } else if (level === 13 || level === 41) {
-          return {
-            question: 'A bag has 2 red and 3 blue balls. What is the probability of picking a red ball?',
-            options: correctIdx === 2 ? ['1', '1/2', '2/5', '3/5'] : ['1/2', '3/5', '1', '2/5'],
-            correctIndex: correctIdx,
-            hint: 'Favorable / total = 2 / 5.',
-            explanation: 'P(red) = 2 / 5.',
-          };
-        } else if (level === 20 || level === 48) {
-          return {
-            question: 'A bag has 1 red and 2 blue balls. What is the probability of picking a red ball?',
-            options: correctIdx === 0 ? ['1/3', '1/2', '1', '2/3'] : ['2/3', '1/2', '1/3', '1'],
-            correctIndex: correctIdx,
-            hint: 'Favorable / total = 1 / 3.',
-            explanation: 'P(red) = 1 / 3.',
-          };
-        } else {
-          return {
-            question: 'A bag has 4 red and 5 blue balls. What is the probability of picking a red ball?',
-            options: ['5/9', '4/9', '1/2', '1'],
-            correctIndex: correctIdx,
-            hint: 'Favorable / total = 4 / 9.',
-            explanation: 'P(red) = 4 / 9.',
-          };
-        }
-      } else {
-        const valMap: Record<number, number> = { 7: 3, 14: 5, 21: 2, 28: 4, 35: 1, 42: 3, 49: 5 };
-        const v = valMap[level] || 3;
-        return {
-          question: `What is the principal argument of z = ${v} + ${v}i when real and imaginary parts are equal and positive?`,
-          options: ['45°', '30°', '60°', '90°'],
-          correctIndex: correctIdx,
-          hint: 'tan(θ) = y / x = 1, so θ = 45° in the first quadrant.',
-          explanation: 'Since real and imaginary components are equal and positive, θ = arctan(1) = 45°.',
-        };
-      }
-    },
-  },
-
-  // Q6: Mathematics (Linear addition)
-  {
-    qNum: 6,
-    difficulty: 'Easy',
-    subject: 'mathematics',
-    subjectLabel: 'Mathematics',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[5] : 0;
-      const x = level + 3;
-      const y = level + 7;
-      const sum = x + y;
-      return {
-        question: `If x = ${x} and y = ${y}, what is x + y?`,
-        options: [`${sum}`, `${sum + 2}`, `${sum - 1}`, `${x * y}`],
-        correctIndex: correctIdx,
-        hint: `Direct addition of ${x} and ${y}.`,
-        explanation: `${x} + ${y} = ${sum}.`,
-      };
-    },
-  },
-
-  // Q7: Science
-  {
-    qNum: 7,
-    difficulty: 'Easy',
-    subject: 'science',
-    subjectLabel: 'Science',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[6] : 1;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'What is the SI unit of force?',
-          opts: ['Joule', 'Newton', 'Watt', 'Pascal'],
-          h: 'Named after Sir Isaac Newton.',
-          exp: 'The SI unit of force is the Newton (N).',
-        },
-        {
-          q: 'Which gas do plants absorb during photosynthesis?',
-          opts: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Hydrogen'],
-          h: 'Plants use this to produce glucose.',
-          exp: 'Plants absorb Carbon dioxide (CO2).',
-        },
-        {
-          q: 'What is the chemical symbol for sodium?',
-          opts: ['So', 'S', 'Na', 'N'],
-          h: 'Derived from Latin Natrium.',
-          exp: 'Sodium is represented by Na.',
-        },
-        {
-          q: 'Which organ pumps blood through the human body?',
-          opts: ['Lungs', 'Brain', 'Heart', 'Kidney'],
-          h: 'The central muscular pump in the chest.',
-          exp: 'The Heart pumps oxygenated blood.',
-        },
-        {
-          q: 'Which particle has a negative electric charge?',
-          opts: ['Proton', 'Neutron', 'Electron', 'Nucleus'],
-          h: 'Orbits around the atomic nucleus.',
-          exp: 'Electrons have a negative charge of -1.',
-        },
-        {
-          q: 'At room temperature, pure water is approximately neutral at pH:',
-          opts: ['2', '5', '7', '12'],
-          h: 'Middle of the pH scale (0 to 14).',
-          exp: 'Neutral pH is 7.',
-        },
-        {
-          q: 'Which part of a plant mainly absorbs water from soil?',
-          opts: ['Flower', 'Roots', 'Leaves', 'Fruit'],
-          h: 'Underground system with root hairs.',
-          exp: 'Roots absorb water and minerals.',
-        },
-        {
-          q: 'What is the SI unit of electric current?',
-          opts: ['Volt', 'Ampere', 'Ohm', 'Watt'],
-          h: 'Measured by an ammeter.',
-          exp: 'The SI unit of electric current is Ampere (A).',
-        },
-        {
-          q: 'Which of these is a chemical change?',
-          opts: ['Melting ice', 'Cutting paper', 'Rusting iron', 'Boiling water'],
-          h: 'Formation of a new substance with irreversible bonds.',
-          exp: 'Rusting iron is an oxidation chemical reaction.',
-        },
-        {
-          q: 'Which vitamin can the human body produce with help from sunlight?',
-          opts: ['Vitamin A', 'Vitamin B12', 'Vitamin C', 'Vitamin D'],
-          h: 'Often called the sunshine vitamin.',
-          exp: 'Sunlight synthesizes Vitamin D in human skin.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q8: Science
-  {
-    qNum: 8,
-    difficulty: 'Easy',
-    subject: 'science',
-    subjectLabel: 'Science',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[7] : 2;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'At room temperature, pure water is approximately neutral at pH:',
-          opts: ['2', '5', '7', '12'],
-          h: 'Middle of the pH scale.',
-          exp: 'Neutral pH is 7.',
-        },
-        {
-          q: 'Which part of a plant mainly absorbs water from soil?',
-          opts: ['Flower', 'Roots', 'Leaves', 'Fruit'],
-          h: 'Underground root hairs.',
-          exp: 'Roots absorb water from soil.',
-        },
-        {
-          q: 'What is the SI unit of electric current?',
-          opts: ['Volt', 'Ampere', 'Ohm', 'Watt'],
-          h: 'Measured by an ammeter.',
-          exp: 'SI unit of current is Ampere (A).',
-        },
-        {
-          q: 'Which of these is a chemical change?',
-          opts: ['Melting ice', 'Cutting paper', 'Rusting iron', 'Boiling water'],
-          h: 'Formation of new substance.',
-          exp: 'Rusting iron is a chemical change.',
-        },
-        {
-          q: 'Which vitamin can the human body produce with help from sunlight?',
-          opts: ['Vitamin A', 'Vitamin B12', 'Vitamin C', 'Vitamin D'],
-          h: 'Sunshine vitamin.',
-          exp: 'Vitamin D is synthesized by sunlight.',
-        },
-        {
-          q: 'What is the SI unit of force?',
-          opts: ['Joule', 'Newton', 'Watt', 'Pascal'],
-          h: 'Named after Sir Isaac Newton.',
-          exp: 'SI unit of force is Newton (N).',
-        },
-        {
-          q: 'Which gas do plants absorb during photosynthesis?',
-          opts: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Hydrogen'],
-          h: 'Plants absorb this to create glucose.',
-          exp: 'Plants absorb Carbon dioxide (CO2).',
-        },
-        {
-          q: 'What is the chemical symbol for sodium?',
-          opts: ['So', 'S', 'Na', 'N'],
-          h: 'Latin Natrium.',
-          exp: 'Sodium is represented by Na.',
-        },
-        {
-          q: 'Which organ pumps blood through the human body?',
-          opts: ['Lungs', 'Brain', 'Heart', 'Kidney'],
-          h: 'Central pump.',
-          exp: 'The Heart pumps blood.',
-        },
-        {
-          q: 'Which particle has a negative electric charge?',
-          opts: ['Proton', 'Neutron', 'Electron', 'Nucleus'],
-          h: 'Orbits nucleus.',
-          exp: 'Electrons have negative charge.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q9: Social Science
-  {
-    qNum: 9,
-    difficulty: 'Easy',
-    subject: 'social_science',
-    subjectLabel: 'Social Science',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[8] : 1;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'Who led the Salt March in 1930?',
-          opts: ['Jawaharlal Nehru', 'Mahatma Gandhi', 'B. R. Ambedkar', 'Sardar Patel'],
-          h: 'Led non-violent Dandi march.',
-          exp: 'Mahatma Gandhi led the historic Salt March from Sabarmati to Dandi in 1930.',
-        },
-        {
-          q: 'What does GDP measure?',
-          opts: ['Population only', 'Value of final goods and services produced', 'Land area', 'Number of schools'],
-          h: 'Gross Domestic Product.',
-          exp: 'GDP measures monetary value of all final goods and services produced.',
-        },
-        {
-          q: 'The French Revolution began in which year?',
-          opts: ['1492', '1776', '1789', '1914'],
-          h: 'Storming of Bastille.',
-          exp: 'The French Revolution began in 1789.',
-        },
-        {
-          q: 'Which is a renewable resource?',
-          opts: ['Coal', 'Petroleum', 'Solar energy', 'Natural gas'],
-          h: 'Inexhaustible clean energy.',
-          exp: 'Solar energy replenishes naturally.',
-        },
-        {
-          q: 'Who was the first Prime Minister of independent India?',
-          opts: ['Mahatma Gandhi', 'Jawaharlal Nehru', 'Rajendra Prasad', 'Sardar Patel'],
-          h: 'Delivered "Tryst with Destiny".',
-          exp: 'Jawaharlal Nehru was India\'s first Prime Minister.',
-        },
-        {
-          q: 'What is the main purpose of a constitution?',
-          opts: ['To list all citizens', 'To set the basic rules and principles of government', 'To predict weather', 'To set market prices'],
-          h: 'Fundamental law of the land.',
-          exp: 'A constitution sets the basic rules and principles of government.',
-        },
-        {
-          q: 'Which sector includes farming and fishing?',
-          opts: ['Primary', 'Secondary', 'Tertiary', 'Quaternary'],
-          h: 'Direct natural resource extraction.',
-          exp: 'Farming and fishing belong to the Primary sector.',
-        },
-        {
-          q: 'Which ocean lies to the east of India?',
-          opts: ['Atlantic Ocean', 'Pacific Ocean', 'Indian Ocean', 'Arctic Ocean'],
-          h: 'The major ocean embracing the subcontinent.',
-          exp: 'The Indian Ocean (with Bay of Bengal) lies to the east of southern India.',
-        },
-        {
-          q: 'Inflation means:',
-          opts: ['A sustained rise in general prices', 'A fall in all wages', 'A rise in rainfall', 'A fall in population'],
-          h: 'Rise in prices over time.',
-          exp: 'Inflation is a sustained rise in general price levels.',
-        },
-        {
-          q: 'Which movement was launched by Gandhi in 1942?',
-          opts: ['Non-Cooperation Movement', 'Quit India Movement', 'Swadeshi Movement', 'Khilafat Movement'],
-          h: 'The "Do or Die" call was given in August 1942.',
-          exp: 'The Quit India Movement was launched in 1942.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q10: Social Science
-  {
-    qNum: 10,
-    difficulty: 'Easy',
-    subject: 'social_science',
-    subjectLabel: 'Social Science',
-    points: 1,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[9] : 0;
-      const c = (level - 1) % 10;
-      const bank = [
-        {
-          q: 'Which sector includes farming and fishing?',
-          opts: ['Primary', 'Secondary', 'Tertiary', 'Quaternary'],
-          h: 'Direct extraction of resources.',
-          exp: 'Farming and fishing belong to the Primary sector.',
-        },
-        {
-          q: 'Which ocean lies to the east of India?',
-          opts: ['Atlantic Ocean', 'Pacific Ocean', 'Indian Ocean', 'Arctic Ocean'],
-          h: 'Eastern coast of Tamil Nadu / Bay of Bengal.',
-          exp: 'The Indian Ocean (Bay of Bengal) lies east of peninsular India.',
-        },
-        {
-          q: 'Inflation means:',
-          opts: ['A sustained rise in general prices', 'A fall in all wages', 'A rise in rainfall', 'A fall in population'],
-          h: 'General rise in prices.',
-          exp: 'Inflation is a sustained rise in general prices.',
-        },
-        {
-          q: 'Which movement was launched by Gandhi in 1942?',
-          opts: ['Non-Cooperation Movement', 'Quit India Movement', 'Swadeshi Movement', 'Khilafat Movement'],
-          h: 'Launched in August 1942.',
-          exp: 'The Quit India Movement was launched in 1942.',
-        },
-        {
-          q: 'Who led the Salt March in 1930?',
-          opts: ['Jawaharlal Nehru', 'Mahatma Gandhi', 'B. R. Ambedkar', 'Sardar Patel'],
-          h: 'Dandi March leader.',
-          exp: 'Mahatma Gandhi led the Salt March in 1930.',
-        },
-        {
-          q: 'What does GDP measure?',
-          opts: ['Population only', 'Value of final goods and services produced', 'Land area', 'Number of schools'],
-          h: 'Economic output.',
-          exp: 'GDP measures the monetary value of all final goods and services produced.',
-        },
-        {
-          q: 'The French Revolution began in which year?',
-          opts: ['1492', '1776', '1789', '1914'],
-          h: 'Storming of Bastille.',
-          exp: 'The French Revolution began in 1789.',
-        },
-        {
-          q: 'Which is a renewable resource?',
-          opts: ['Coal', 'Petroleum', 'Solar energy', 'Natural gas'],
-          h: 'Inexhaustible clean natural energy.',
-          exp: 'Solar energy replenishes naturally.',
-        },
-        {
-          q: 'Who was the first Prime Minister of independent India?',
-          opts: ['Mahatma Gandhi', 'Jawaharlal Nehru', 'Rajendra Prasad', 'Sardar Patel'],
-          h: 'First PM from 1947.',
-          exp: 'Jawaharlal Nehru was the first Prime Minister.',
-        },
-        {
-          q: 'What is the main purpose of a constitution?',
-          opts: ['To list all citizens', 'To set the basic rules and principles of government', 'To predict weather', 'To set market prices'],
-          h: 'Basic principles of government.',
-          exp: 'A constitution sets the basic rules and principles of government.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q11: Medium (Tamil)
-  {
-    qNum: 11,
-    difficulty: 'Medium',
-    subject: 'tamil',
-    subjectLabel: 'Tamil (தமிழ்)',
-    points: 2,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[10] : 1;
-      const c = (level - 1) % 5;
-      const bank = [
-        {
-          q: '“படித்து முடித்தான்” தொடரில் “படித்து” என்பது என்ன?',
-          opts: ['பெயர்ச்சொல்', 'வினையெச்சம்', 'பெயரடை', 'இடைச்சொல்'],
-          h: 'முடித்தான் என்ற வினையோடு முடியும் எச்சச் சொல்.',
-          exp: 'முடித்தான் என்ற வினைமுற்றை ஏற்று முடிவதால் இது வினையெச்சம் ஆகும்.',
-        },
-        {
-          q: '“மலர்ந்தது” என்பது எந்தச் சொல் வகை?',
-          opts: ['வினைச்சொல்', 'பெயர்ச்சொல்', 'உரிச்சொல்', 'இடைச்சொல்'],
-          h: 'செயல் முடிவடைந்த வினைமுற்று.',
-          exp: 'மலர்ந்தது என்பது செயல் முற்றுப்பெற்றதை உணர்த்தும் வினைச்சொல்.',
-        },
-        {
-          q: '“அவன் வேகமாக ஓடினான்” வாக்கியத்தில் “வேகமாக” என்பது என்ன?',
-          opts: ['பெயர்ச்சொல்', 'வினையடை', 'வினைமுற்று', 'சுட்டுப்பெயர்'],
-          h: 'ஓடியதன் வேகத்தை விவரிப்பது.',
-          exp: 'வினையின் இயல்பை உணர்த்துவதால் இது வினையடை ஆகும்.',
-        },
-        {
-          q: '“மாணவி” என்பதன் பன்மை வடிவம் எது?',
-          opts: ['மாணவிகள்', 'மாணவியால்', 'மாணவியை', 'மாணவிக்கு'],
-          h: 'கள் விகுதி பெற்று வரும் பன்மை.',
-          exp: 'மாணவி என்பதன் பன்மை மாணவிகள்.',
-        },
-        {
-          q: '“அவர்கள் வந்தனர்” வாக்கியத்தில் எழுவாய் எது?',
-          opts: ['வந்தனர்', 'அவர்கள்', 'வாக்கியம்', 'எது'],
-          h: 'செயலைச் செய்த தொடக்கப் பெயர்.',
-          exp: 'அவர்கள் என்பது எழுவாய் ஆகும்.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q12: Medium (English)
-  {
-    qNum: 12,
-    difficulty: 'Medium',
-    subject: 'english',
-    subjectLabel: 'English',
-    points: 2,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[11] : 1;
-      const c = (level - 1) % 5;
-      const bank = [
-        {
-          q: 'Choose the correct passive voice: “The chef cooked the meal.”',
-          opts: [
-            'The meal cooked the chef.',
-            'The meal was cooked by the chef.',
-            'The meal is cook by chef.',
-            'The chef was cooked by the meal.',
-          ],
-          h: 'Object becomes subject + was/were + past participle.',
-          exp: '"The meal was cooked by the chef" is correct passive voice.',
-        },
-        {
-          q: 'Choose the correct conditional: “If it rains, we ___ indoors.”',
-          opts: ['stayed', 'would stayed', 'will stay', 'stay yesterday'],
-          h: 'First conditional (Present Simple -> will + base verb).',
-          exp: 'If it rains (present), we will stay (future) indoors.',
-        },
-        {
-          q: 'Identify the conjunction: “I stayed home because it rained.”',
-          opts: ['stayed', 'home', 'because', 'rained'],
-          h: 'Word linking the two clauses together.',
-          exp: '"Because" is the subordinate conjunction showing reason.',
-        },
-        {
-          q: 'Choose the correct option: “Neither of the boys ___ present.”',
-          opts: ['were', 'are', 'was', 'be'],
-          h: '"Neither of" takes a singular verb in standard grammar.',
-          exp: '"Neither of the boys was present" is grammatically standard.',
-        },
-        {
-          q: 'Choose the correct reported speech: He said, “I am tired.”',
-          opts: [
-            'He said that I am tired.',
-            'He said that he was tired.',
-            'He says he tired.',
-            'He said he is tiring.',
-          ],
-          h: 'Present tense "am" changes to past "was" in indirect speech.',
-          exp: 'He said that he was tired.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q13: Medium (Social Science)
-  {
-    qNum: 13,
-    difficulty: 'Medium',
-    subject: 'social_science',
-    subjectLabel: 'Social Science',
-    points: 2,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[12] : 1;
-      const c = (level - 1) % 5;
-      const bank = [
-        {
-          q: 'What is the main role of the Reserve Bank of India (RBI)?',
-          opts: [
-            'Conduct school exams',
-            'Central banking and monetary policy',
-            'Build highways only',
-            'Run all private shops',
-          ],
-          h: 'Apex regulatory body for banking and currency in India.',
-          exp: 'The RBI regulates currency issue and manages monetary policy.',
-        },
-        {
-          q: 'What does per capita income mean?',
-          opts: [
-            'Total income divided by population',
-            'Total exports only',
-            'Income of the richest person',
-            'Government tax rate',
-          ],
-          h: 'Average income per person in a nation.',
-          exp: 'Per capita income is total national income divided by population.',
-        },
-        {
-          q: 'What is meant by democracy?',
-          opts: [
-            'Rule by one king only',
-            'Government chosen by the people',
-            'Rule by the army only',
-            'Government without laws',
-          ],
-          h: 'Government of the people, by the people, for the people.',
-          exp: 'Democracy is a system where citizens elect their representatives.',
-        },
-        {
-          q: 'Which event is associated with 1930 in India\'s freedom struggle?',
-          opts: ['Dandi March', 'Jallianwala Bagh massacre', 'Partition of Bengal', 'Independence'],
-          h: 'Salt satyagraha led by Mahatma Gandhi.',
-          exp: 'The Dandi March occurred in 1930.',
-        },
-        {
-          q: 'Which is an example of the tertiary (services) sector?',
-          opts: ['Mining coal', 'Growing rice', 'Teaching in a school', 'Making steel'],
-          h: 'Service activities rather than raw goods production.',
-          exp: 'Teaching in a school is a service sector (tertiary) activity.',
-        },
-      ];
-      const item = bank[c];
-      return {
-        question: item.q,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: item.h,
-        explanation: item.exp,
-      };
-    },
-  },
-
-  // Q14: Hard (Mathematics: Matrix Determinants)
-  {
-    qNum: 14,
-    difficulty: 'Hard',
-    subject: 'mathematics',
-    subjectLabel: 'Mathematics',
-    points: 3,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[13] : 0;
-      const a = (level % 7) + 2;
-      const b = (level % 5) + 1;
-      const c = (level % 4) + 1;
-      const d = (level % 6) + 3;
-      const det = a * d - b * c;
-      return {
-        question: `Maths: Find the determinant of [[${a}, ${b}], [${c}, ${d}]].`,
-        options: [`${det}`, `${det + 2}`, `${det - 2}`, `${a * d + b * c}`],
-        correctIndex: correctIdx,
-        hint: `Determinant of [[a, b], [c, d]] is calculated as ad - bc = (${a} × ${d}) - (${b} × ${c}).`,
-        explanation: `det = (${a} × ${d}) - (${b} × ${c}) = ${a * d} - ${b * c} = ${det}.`,
-      };
-    },
-  },
-
-  // Q15: Hard (Science: Physics - Parallel Resistors)
-  {
-    qNum: 15,
-    difficulty: 'Hard',
-    subject: 'science',
-    subjectLabel: 'Science',
-    points: 3,
-    getQuestionData: (level: number) => {
-      const answers = RAW_ANSWER_KEYS[level];
-      const correctIdx = answers ? answers[14] : 0;
-      const c10 = (level - 1) % 10;
-      const bank = [
-        { r1: 6, r2: 3, v: 12, ans: '6 A', opts: ['6 A', '7 A', '5 A', '12 A'] },
-        { r1: 4, r2: 4, v: 8, ans: '4 A', opts: ['4 A', '5 A', '3 A', '8 A'] },
-        { r1: 8, r2: 4, v: 12, ans: '4.5 A', opts: ['4.5 A', '5.5 A', '3.5 A', '9 A'] },
-        { r1: 6, r2: 2, v: 12, ans: '8 A', opts: ['8 A', '9 A', '7 A', '16 A'] },
-        { r1: 12, r2: 6, v: 18, ans: '4.5 A', opts: ['4.5 A', '5.5 A', '3.5 A', '9 A'] },
-        { r1: 10, r2: 5, v: 15, ans: '4.5 A', opts: ['4.5 A', '5.5 A', '3.5 A', '9 A'] },
-        { r1: 9, r2: 3, v: 12, ans: '5.33333 A', opts: ['5.33333 A', '6.33333 A', '4.33333 A', '10.6667 A'] },
-        { r1: 4, r2: 2, v: 6, ans: '4.5 A', opts: ['4.5 A', '5.5 A', '3.5 A', '9 A'] },
-        { r1: 15, r2: 5, v: 20, ans: '5.33333 A', opts: ['5.33333 A', '6.33333 A', '4.33333 A', '10.6667 A'] },
-        { r1: 8, r2: 8, v: 16, ans: '4 A', opts: ['4 A', '5 A', '3 A', '8 A'] },
-      ];
-      const item = bank[c10];
-      return {
-        question: `Science: Two resistors of ${item.r1} Ω and ${item.r2} Ω are connected in parallel across a ${item.v} V battery. Find the total current.`,
-        options: item.opts,
-        correctIndex: correctIdx,
-        hint: `Equivalent resistance: 1/R = 1/${item.r1} + 1/${item.r2}. Total Current I = V / R.`,
-        explanation: `1/R = 1/${item.r1} + 1/${item.r2}. Total Current I = ${item.v}V / R = ${item.ans}.`,
-      };
-    },
-  },
+// Q7: ENGINEERING, CIRCUITS & APPLIED TECH - 50 Unique Questions (Level 1 to 50)
+const TECH_QUESTIONS = [
+  { q: 'According to Ohm’s Law (I = V / R), what current flows through a 4 Ω emergency lamp powered by a 12 V battery?', opts: ['3 Amperes', '48 Amperes', '16 Amperes', '0.33 Amperes'], ans: 0, exp: 'I = 12 V / 4 Ω = 3 Amperes.' },
+  { q: 'What is the primary technical function of a solar power inverter in an off-grid home shelter?', opts: ['Converts 12V/24V Direct Current (DC) from batteries to 230V Alternating Current (AC)', 'Charges phones using steam', 'Cools the ceiling fan motor', 'Increases battery water volume'], ans: 0, exp: 'Inverters convert DC battery energy into AC electricity for standard home appliances.' },
+  { q: 'Which international radio frequency band is designated for maritime emergency distress communication (Channel 16)?', opts: ['VHF marine band: 156.8 MHz', 'AM radio: 540 kHz', 'Microwave 5 GHz', 'Sub-audible 20 Hz'], ans: 0, exp: 'VHF Channel 16 (156.800 MHz) is the international calling and distress channel.' },
+  { q: 'What protective electrical device automatically trips and disconnects a circuit when an electrical overload occurs?', opts: ['Miniature Circuit Breaker (MCB)', 'Step-up Transformer', 'Light dimmer potentiometer', 'Galvanometer'], ans: 0, exp: 'MCBs detect excess current and trip within milliseconds, preventing wire fires.' },
+  { q: 'Two 6 Ω heating elements are connected in series across an emergency circuit. What is the total equivalent resistance?', opts: ['12 Ω', '3 Ω', '36 Ω', '6 Ω'], ans: 0, exp: 'Series resistance sums directly: R_total = R1 + R2 = 6 + 6 = 12 Ω.' },
+  { q: 'What type of fire extinguisher must NEVER be used on an energized live electrical circuit fire?', opts: ['Water fire extinguisher (Class A)', 'Carbon Dioxide (CO2) extinguisher', 'Dry Chemical Powder (ABC) extinguisher', 'Halon gas extinguisher'], ans: 0, exp: 'Water conducts high-voltage electricity, delivering fatal shocks to the operator.' },
+  { q: 'An emergency DC LED floodlight is rated at 60 Watts and runs on 12 Volts. What current does it consume (P = V × I)?', opts: ['5 Amperes', '720 Amperes', '0.2 Amperes', '12 Amperes'], ans: 0, exp: 'Current I = Power / Voltage = 60 W / 12 V = 5 Amperes.' },
+  { q: 'Why are deep-cycle solar batteries preferred over automotive car starter batteries for disaster backup power?', opts: ['They withstand repeated deep discharges (up to 80%) without degrading battery plates', 'They are lighter than plastic', 'They produce alternating current directly', 'They never require recharging'], ans: 0, exp: 'Deep-cycle batteries feature heavy lead plates designed for steady, prolonged power delivery.' },
+  { q: 'What electrical component steps down high-voltage AC grid power (230V) to lower operational voltages (12V)?', opts: ['Step-down Transformer', 'Capacitor bank', 'Induction motor', 'Rheostat'], ans: 0, exp: 'Transformers use mutual magnetic induction to alter AC voltage levels.' },
+  { q: 'In standard Indian domestic electrical wiring, what color insulation identifies the protective Earth Grounding wire?', opts: ['Green (or Green with Yellow stripe)', 'Red (Phase/Live)', 'Black (Neutral)', 'Blue'], ans: 0, exp: 'Green is the standardized color for the safety earth grounding conductor.' },
+  { q: 'Two identical 12V 100Ah batteries are connected in parallel. What is the resulting voltage and amp-hour capacity?', opts: ['12 Volts and 200 Ah capacity', '24 Volts and 100 Ah capacity', '24 Volts and 200 Ah capacity', '12 Volts and 50 Ah capacity'], ans: 0, exp: 'Parallel connection keeps voltage constant (12V) and doubles capacity (200Ah).' },
+  { q: 'Two identical 12V 100Ah batteries are connected in series. What is the resulting voltage and amp-hour capacity?', opts: ['24 Volts and 100 Ah capacity', '12 Volts and 200 Ah capacity', '24 Volts and 200 Ah capacity', '12 Volts and 50 Ah capacity'], ans: 0, exp: 'Series connection doubles voltage (24V) and maintains single capacity (100Ah).' },
+  { q: 'What electronic semiconductor component allows electrical current to flow in only one direction (rectification)?', opts: ['Diode', 'Resistor', 'Inductor', 'Ceramic capacitor'], ans: 0, exp: 'Diodes have low forward resistance and very high reverse resistance.' },
+  { q: 'What device stores electrical energy in an electrostatic field between two conductive plates?', opts: ['Capacitor', 'Resistor', 'Solenoid coil', 'Fuse'], ans: 0, exp: 'Capacitors store charge Q = C × V to smooth voltage ripple in power supplies.' },
+  { q: 'Two 10 Ω resistors are wired in parallel. What is the equivalent resistance (1/R = 1/R1 + 1/R2)?', opts: ['5 Ω', '20 Ω', '100 Ω', '15 Ω'], ans: 0, exp: '1/R = 1/10 + 1/10 = 2/10 = 1/5 => R = 5 Ω.' },
+  { q: 'What is the frequency of the alternating current (AC) power grid in India and Tamil Nadu?', opts: ['50 Hertz (Hz)', '60 Hertz (Hz)', '100 Hertz (Hz)', '12 Hertz (Hz)'], ans: 0, exp: 'India operates on a 230V, 50 Hz single-phase AC standard.' },
+  { q: 'What does LED stand for in modern energy-efficient emergency illumination?', opts: ['Light Emitting Diode', 'Low Emission Device', 'Luminescent Energy Distributor', 'Linear Electron Driver'], ans: 0, exp: 'LEDs convert electrical energy directly into photons with minimal heat loss.' },
+  { q: 'What tool is universally used to measure voltage, current, and circuit resistance during shelter repairs?', opts: ['Digital Multimeter (DMM)', 'Oscilloscope only', 'Calipers', 'Barometer'], ans: 0, exp: 'Multimeters measure AC/DC Volts, Amperes, and Ohms.' },
+  { q: 'If a 100 Watt light bulb operates continuously for 10 hours, how much electrical energy is consumed in kilowatt-hours (kWh)?', opts: ['1.0 kWh (1 electrical unit)', '10 kWh', '0.1 kWh', '1000 kWh'], ans: 0, exp: 'Energy = Power × Time = 100 W × 10 h = 1000 Wh = 1.0 kWh.' },
+  { q: 'What is the function of a fuse wire in an electrical plug?', opts: ['Melts and breaks the circuit during short-circuit overcurrents', 'Amplifies audio signals', 'Stores backup electricity', 'Makes the wire flexible'], ans: 0, exp: 'Low melting point alloy breaks the circuit before copper conductors overheat.' },
+  { q: 'What type of motor is standardly found in domestic ceiling fans (operating on single-phase AC)?', opts: ['Single-phase Induction Motor with starting capacitor', 'DC Brushed motor', 'Gas turbine', 'Stepper motor'], ans: 0, exp: 'Permanent split-capacitor induction motors drive quiet ceiling fan blades.' },
+  { q: 'What safety interlock is engineered into microwave ovens to protect users from high-frequency radiation?', opts: ['Door micro-switches that instantly shut off the magnetron when the latch opens', 'A water sprinkler inside', 'A mechanical bell', 'A heavy brass padlock'], ans: 0, exp: 'Safety micro-switches interrupt power to the magnetron if the door is ajar.' },
+  { q: 'Which gas refrigerant is widely used in modern eco-friendly domestic refrigerators?', opts: ['Isobutane (R600a)', 'CFC-12 (Freon)', 'Pure Chlorine', 'Sulfur dioxide'], ans: 0, exp: 'R600a (isobutane) has zero Ozone Depletion Potential and very low global warming impact.' },
+  { q: 'Why is copper the universal metal of choice for domestic electrical conductors and wiring?', opts: ['High electrical conductivity, ductility, and corrosion resistance', 'It is the cheapest metal on Earth', 'It is magnetic', 'It floats on floodwater'], ans: 0, exp: 'Copper offers very low resistivity (1.68 × 10⁻⁸ Ω·m) and excellent mechanical strength.' },
+  { q: 'What is the function of a flyback diode connected in reverse across a DC relay coil?', opts: ['Suppresses inductive voltage spikes when the coil is de-energized', 'Increases relay sound', 'Lights up the relay', 'Cools the coil'], ans: 0, exp: 'Snubber diodes absorb inductive kickback (V = -L di/dt), protecting switching transistors.' },
+  { q: 'What is the primary role of a solar charge controller (MPPT / PWM) between panels and batteries?', opts: ['Regulates voltage and prevents overcharging or reverse discharge during nighttime', 'Turns sunlight into water', 'Acts as a lightning rod', 'Replaces the solar panel'], ans: 0, exp: 'Charge controllers prevent battery thermal runaway and over-voltage plate damage.' },
+  { q: 'What does MPPT stand for in high-efficiency solar power conditioning systems?', opts: ['Maximum Power Point Tracking', 'Main Power Phase Transfer', 'Multiple Panel Protocol Technology', 'Mechanical Power Pulse Turbine'], ans: 0, exp: 'MPPT dynamically tracks the IV curve to harvest maximum panel wattage.' },
+  { q: 'How does an earth-leakage circuit breaker (ELCB / RCCB) protect humans from electric shock?', opts: ['Detects current imbalance between live and neutral wires and trips within 30 milliseconds', 'Increases circuit voltage', 'Cools the wires', 'Warns users with a siren only'], ans: 0, exp: 'Residual current devices trip if current leaks through a human to ground (30mA threshold).' },
+  { q: 'What is the characteristic impedance of standard coaxial cables used for emergency VHF radio antennas?', opts: ['50 Ohms', '75 Ohms', '300 Ohms', '1000 Ohms'], ans: 0, exp: '50 Ω coaxial cable (RG-58 / RG-213) matches standard transceiver RF output.' },
+  { q: 'What type of structural antenna is simplest to improvise from wire for emergency maritime reception?', opts: ['Quarter-wave vertical dipole or whip antenna', 'Satellite parabolic dish', 'Phased radar array', 'Helical copper coil'], ans: 0, exp: 'A vertical quarter-wave wire tuned to frequency offers omnidirectional reception.' },
+  { q: 'What physical process occurs inside a microwave oven cavity to cook food rapidly?', opts: ['2.45 GHz radio waves rotate dipolar water molecules, generating dielectric heat', 'Infrared flames burn the crust', 'Convection fans blow hot air', 'Ultraviolet rays split fats'], ans: 0, exp: 'Microwaves penetrate food and excite rotational kinetic energy in water molecules.' },
+  { q: 'Why is it critical to ground a temporary emergency generator frame to a copper earth rod driven into the soil?', opts: ['Provides a zero-potential fault path, preventing lethal shock if internal insulation fails', 'Generates more fuel efficiency', 'Prevents generator from rolling', 'Increases voltage to 400V'], ans: 0, exp: 'Equipment grounding establishes a safe low-resistance fault return path.' },
+  { q: 'What is the primary technical metric defining an emergency battery’s storage capacity?', opts: ['Ampere-hours (Ah) or Watt-hours (Wh)', 'Liters per second', 'Decibels (dB)', 'Horsepower (HP)'], ans: 0, exp: 'Ah indicates sustained current discharge over time (e.g. 100Ah = 5A for 20h).' },
+  { q: 'What is the electrical resistance of an ideal closed mechanical switch?', opts: ['0 Ohms (zero resistance)', 'Infinity (infinite resistance)', '1000 Ohms', '50 Ohms'], ans: 0, exp: 'A closed switch conducts with near zero resistance across contacts.' },
+  { q: 'What is the electrical resistance of an ideal open switch or blown fuse?', opts: ['Infinite resistance (open circuit)', '0 Ohms', '1 Ohm', '10 Ohms'], ans: 0, exp: 'An open circuit prevents any current flow (I = 0).' },
+  { q: 'What type of electrical waveform does a pure sine wave inverter output for sensitive electronics?', opts: ['Smooth sinusoidal AC waveform identical to utility grid power', 'Square wave with sharp spikes', 'Modified stepped square wave', 'Static DC line'], ans: 0, exp: 'Pure sine waves prevent motor overheating and buzz in TVs and medical monitors.' },
+  { q: 'What causes the audible 50 Hz humming sound often heard near large electrical transformers?', opts: ['Magnetostriction (core laminations expanding and contracting under AC magnetic flux)', 'Air leaking from oil seals', 'Water boiling in coils', 'Friction of spinning rotor'], ans: 0, exp: 'Alternating magnetic domains deform magnetic core steel at twice the grid frequency.' },
+  { q: 'Why should rechargeable lead-acid batteries be kept in well-ventilated shelter battery sheds?', opts: ['They release explosive Hydrogen (H2) gas during heavy overcharging cycles', 'They release liquid nitrogen', 'They absorb all room oxygen', 'They produce ozone fog'], ans: 0, exp: 'Electrolysis of water produces hydrogen gas, which can ignite if concentrated.' },
+  { q: 'What is the function of a thermal fuse located inside electric rice cookers and fans?', opts: ['Permanently cuts power if temperature exceeds safe threshold, preventing fires', 'Acts as a timer switch', 'Cools the heating element', 'Regulates fan speed'], ans: 0, exp: 'One-time thermal cutoffs interrupt current before plastic insulation combusts.' },
+  { q: 'In a 3-pin Indian electrical wall plug, why is the top Earth pin noticeably thicker and longer than the other two?', opts: ['Engages ground connection first before live/neutral and carries high fault currents safely', 'To save brass metal', 'To fit loose sockets', 'For aesthetic asymmetry'], ans: 0, exp: 'First-to-make, last-to-break safety design protects users during plug insertion.' },
+  { q: 'What device converts mechanical rotation from a wind turbine into electrical current?', opts: ['Alternator / Generator', 'Induction heater', 'Step-down inverter', 'Transformer'], ans: 0, exp: 'Electromagnetic induction (Faraday’s law) transforms rotational kinetic energy into electricity.' },
+  { q: 'What electronic sensor measures ambient temperature inside emergency food refrigerators?', opts: ['Thermistor (NTC / PTC) or RTD probe', 'Hall-effect sensor', 'Phototransistor', 'Piezo buzzer'], ans: 0, exp: 'Negative Temperature Coefficient thermistors change resistance precisely with temperature.' },
+  { q: 'What is the purpose of electrical insulation tape (PVC tape) during wire jointing?', opts: ['Provides dielectric insulation and prevents accidental live conductor contact', 'Makes wire look black', 'Conducts extra current', 'Increases wire thickness'], ans: 0, exp: 'Pressure-sensitive PVC tape insulates spliced conductors against moisture and short circuits.' },
+  { q: 'How does an uninterruptible power supply (UPS) provide instant transfer during power blackouts?', opts: ['An internal transfer relay switches to battery inverter power in less than 10 milliseconds', 'It waits 5 minutes to start an engine', 'It uses mechanical water wheels', 'It stores AC power in springs'], ans: 0, exp: 'Sub-10ms transfer keeps computers and telemetry stations from rebooting.' },
+  { q: 'What is the standard frequency used by Wi-Fi and Bluetooth wireless communication chips?', opts: ['2.4 GHz and 5 GHz ISM bands', '100 kHz LF band', '50 Hz AC line', '1 GHz infrared'], ans: 0, exp: 'The 2.4 GHz and 5 GHz Industrial, Scientific, and Medical bands host Wi-Fi/Bluetooth.' },
+  { q: 'Why is it dangerous to replace a blown 5A circuit fuse with a thick copper nail or wire?', opts: ['Removes overcurrent protection; excess current will melt walls and ignite structural fires', 'The nail is too clean', 'It saves money', 'It creates too much light'], ans: 0, exp: 'Bypassing fuses eliminates safety protection, leading to wire overheating and house fires.' },
+  { q: 'What device steps up DC voltage efficiently in battery-operated LED flashlights (e.g., 1.5V to 3.3V)?', opts: ['DC-DC Boost Converter (Switch-mode regulator)', 'Linear carbon resistor', 'Step-up transformer', 'Chemical filter'], ans: 0, exp: 'Boost converters use an inductor and high-speed MOSFET switch to elevate DC voltage.' },
+  { q: 'What type of solder alloy is standardly used for reliable electrical wire and PCB soldering?', opts: ['Tin-Lead (60/40) or Lead-Free Tin-Silver-Copper (SAC305)', 'Pure aluminum wire', 'Solid iron wire', 'Copper zinc brass'], ans: 0, exp: 'Low melting point solder alloys provide solid metallurgical and electrical connections.' },
+  { q: 'What is the primary indicator that a solar deep-cycle lead battery is approaching end of life?', opts: ['Significant loss of amp-hour storage capacity and rapid voltage drop under moderate load', 'It changes color to green', 'It becomes magnetic', 'It increases in weight'], ans: 0, exp: 'Sulfation and plate degradation reduce the active chemical capacity over time.' },
+  { q: 'What is the ultimate engineering principle for disaster-resilient coastal community infrastructure?', opts: ['Redundancy, failsafe safety barriers, structural reinforcement, and decentralized off-grid capability', 'Centralizing everything in one coastal room', 'Using cheapest fragile materials', 'Relying exclusively on overseas aid'], ans: 0, exp: 'Decentralized modular systems ensure life-support survives even when main grids fail.' },
 ];
 
 /**
- * Returns all 15 questions for a given Level (1 to 50):
- * - 10 Easy questions (Q1–Q10) | 1 point each
- * - 3 Medium questions (Q11–Q13) | 2 points each
- * - 2 Hard questions (Q14–Q15) | 3 points each
- * Total points = 25 per level.
+ * Returns all 7 curriculum questions for a given Level (1 to 50):
+ * - Q1: Tamil (தமிழ்) - Easy (1 pt)
+ * - Q2: English - Easy (1 pt)
+ * - Q3: Mathematics - Easy (1 pt)
+ * - Q4: Science - Medium (2 pts)
+ * - Q5: Social Science & Tamil Nadu Geography - Medium (2 pts)
+ * - Q6: Cyclone & Disaster Preparedness - Hard (3 pts)
+ * - Q7: Engineering, Radio, Electric Circuits & Tech - Hard (3 pts)
+ * Total: Exactly 7 questions per level.
+ * ZERO REPEATS between Level N and Level N+1 or any other level!
  */
 export function getQuestionsForLevel(levelNumber: number): LevelQuestion[] {
   const lvl = Math.max(1, Math.min(50, levelNumber));
+  const idx = lvl - 1; // 0-indexed: Level 1 = 0, Level 2 = 1, ... Level 50 = 49
 
-  return QUESTION_TEMPLATES.map(tpl => {
-    const data = tpl.getQuestionData(lvl);
-    return {
-      id: `lvl_${lvl}_q_${tpl.qNum}`,
-      levelNumber: lvl,
-      difficulty: tpl.difficulty,
-      questionNumber: tpl.qNum,
-      subject: tpl.subject,
-      subjectLabel: tpl.subjectLabel,
-      question: data.question,
-      options: data.options,
-      correctIndex: data.correctIndex,
-      points: tpl.points,
-      hint: data.hint,
-      explanation: data.explanation,
-    };
-  });
+  const t = TAMIL_QUESTIONS[idx] || TAMIL_QUESTIONS[0];
+  const e = ENGLISH_QUESTIONS[idx] || ENGLISH_QUESTIONS[0];
+  const m = MATHS_QUESTIONS[idx] || MATHS_QUESTIONS[0];
+  const s = SCIENCE_QUESTIONS[idx] || SCIENCE_QUESTIONS[0];
+  const soc = SOCIAL_QUESTIONS[idx] || SOCIAL_QUESTIONS[0];
+  const dis = DISASTER_QUESTIONS[idx] || DISASTER_QUESTIONS[0];
+  const tech = TECH_QUESTIONS[idx] || TECH_QUESTIONS[0];
+
+  const qList: Array<{
+    qNum: number;
+    diff: Difficulty;
+    subject: QuestionSubject;
+    subjectLabel: string;
+    points: number;
+    data: { q: string; opts: string[]; ans: number; exp: string };
+  }> = [
+    { qNum: 1, diff: 'Easy', subject: 'tamil', subjectLabel: 'Tamil (தமிழ்)', points: 1, data: t },
+    { qNum: 2, diff: 'Easy', subject: 'english', subjectLabel: 'English', points: 1, data: e },
+    { qNum: 3, diff: 'Easy', subject: 'mathematics', subjectLabel: 'Mathematics', points: 1, data: m },
+    { qNum: 4, diff: 'Medium', subject: 'science', subjectLabel: 'Science', points: 2, data: s },
+    { qNum: 5, diff: 'Medium', subject: 'social_science', subjectLabel: 'Social Science & TN Geography', points: 2, data: soc },
+    { qNum: 6, diff: 'Hard', subject: 'science', subjectLabel: 'Cyclone & Disaster Safety', points: 3, data: dis },
+    { qNum: 7, diff: 'Hard', subject: 'mathematics', subjectLabel: 'Circuits, Engineering & Tech', points: 3, data: tech },
+  ];
+
+  return qList.map(item => ({
+    id: `lvl_${lvl}_q_${item.qNum}`,
+    levelNumber: lvl,
+    difficulty: item.diff,
+    questionNumber: item.qNum,
+    subject: item.subject,
+    subjectLabel: item.subjectLabel,
+    question: item.data.q,
+    options: item.data.opts,
+    correctIndex: item.data.ans,
+    points: item.points,
+    hint: `Study curriculum concept: ${item.data.opts[item.data.ans]}.`,
+    explanation: item.data.exp,
+  }));
 }

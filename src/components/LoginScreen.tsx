@@ -190,51 +190,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
             </div>
 
-            {/* Starter Superhero Selector Preview */}
-            <div className="flex flex-col gap-1.5 pt-1">
-              <span className="text-[10px] text-neutral-400 font-mono-code uppercase font-semibold flex items-center justify-between">
-                <span>Select Starter Superhero:</span>
-                <span className="text-amber-400 font-bold">
-                  {HEROES.find(h => h.id === selectedHeroId)?.name}
-                </span>
-              </span>
-              <div className="grid grid-cols-5 gap-1.5">
-                {HEROES.filter(h =>
-                  ['hero_spiderman', 'hero_thor', 'hero_ironman', 'hero_captain', 'hero_panther'].includes(h.id)
-                ).map(hero => {
-                  const isSelected = hero.id === selectedHeroId;
-                  return (
-                    <button
-                      key={hero.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedHeroId(hero.id);
-                        soundManager.playBeep(520, 0.04);
-                      }}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition cursor-pointer ${
-                        isSelected
-                          ? 'bg-amber-500/20 border-amber-400 shadow-md shadow-amber-500/20'
-                          : 'bg-neutral-950 hover:bg-neutral-800 border-neutral-800'
-                      }`}
-                      title={`${hero.name} - ${hero.abilityName}`}
-                    >
-                      <span className="text-2xl">{hero.portrait}</span>
-                      <span className="text-[9px] font-bold mt-1 truncate max-w-full text-neutral-300">
-                        {hero.name.split(' ')[0]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Submit & Enter Button */}
             <button
               type="submit"
-              className="w-full mt-2 py-3.5 px-4 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-400 hover:to-yellow-400 text-neutral-950 font-black rounded-2xl text-sm transition-all cursor-pointer shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-98"
+              className="w-full mt-2 py-4 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-neutral-950 font-black rounded-2xl text-base transition-all cursor-pointer shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-98 tracking-wide font-display"
             >
               <span>Enter Island Simulation</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
+              <ArrowRight className="w-5 h-5 stroke-[3]" />
             </button>
           </form>
 

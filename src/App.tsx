@@ -14,6 +14,7 @@ import {
 import { soundManager } from './services/audio';
 import { HEROES, getHeroById } from './data/characters';
 import { getQuestionsForLevel } from './data/all50LevelsData';
+import { trackDailyMissionProgress } from './data/dailyMissions';
 import { INITIAL_BADGES } from './data/badges';
 import { calculateRank } from './data/ranks';
 import { INITIAL_CREW, TeamTask } from './data/team';
@@ -130,7 +131,7 @@ export default function App() {
     materialsGathered: 0,
   });
 
-  // Current Level Questions (15 questions: 10 Easy, 3 Medium, 2 Hard)
+  // Current Level Questions (7 questions: 3 Easy, 2 Medium, 2 Hard)
   const [levelQuestions, setLevelQuestions] = useState<LevelQuestion[]>(() => getQuestionsForLevel(1));
   const [activeQuestion, setActiveQuestion] = useState<LevelQuestion | null>(null);
 
@@ -439,8 +440,15 @@ export default function App() {
       const nextSolved = [...levelSolvedIds, activeQuestion.id];
       setLevelSolvedIds(nextSolved);
 
-      // Check if all 15 questions of this level are solved (or threshold met)
-      if (nextSolved.length >= 15) {
+      trackDailyMissionProgress('questions_answered', 1);
+      if (activeQuestion.subject === 'mathematics') {
+        trackDailyMissionProgress('math_solved', 1);
+      } else if (activeQuestion.subject === 'science') {
+        trackDailyMissionProgress('science_solved', 1);
+      }
+
+      // Check if all 7 questions of this level are solved
+      if (nextSolved.length >= 7) {
         handleTriggerLevelComplete();
       }
     } else {
@@ -487,6 +495,7 @@ export default function App() {
     setCurrentLevel(nextLvl);
     setLevelQuestions(getQuestionsForLevel(nextLvl));
     setLevelSolvedIds([]);
+    trackDailyMissionProgress('level_completed', 1);
     setResources(prev => ({
       ...prev,
       timeSeconds: 600,
@@ -533,6 +542,7 @@ export default function App() {
       xp: prev.xp + 100 * newLevel,
       coins: prev.coins + 50 * newLevel,
     }));
+    trackDailyMissionProgress('shelter_rebuilt', 1);
     soundManager.playSuccess();
     handleSaveToLocal();
   };
@@ -635,7 +645,7 @@ export default function App() {
   };
 
   // ========================================================
-  // SCREEN 0: LOGIN SCREEN (USER REQUEST: "add a login page that contain only username and go to the simulation")
+  // SCREEN 0: LOGIN SCREEN (User Request: "Login -> Home")
   // ========================================================
   if (currentScreen === 'LOGIN') {
     return (
@@ -652,7 +662,9 @@ export default function App() {
           } catch {
             // ignore
           }
-          setCurrentScreen('ISLAND_SURVIVAL');
+          // User Request: Login -> Home
+          soundManager.playSuccess();
+          setCurrentScreen('HOME');
         }}
         isMuted={isMuted}
         onToggleMute={() => setIsMuted(soundManager.toggleMute())}
@@ -662,19 +674,53 @@ export default function App() {
 
   // ========================================================
   // SCREEN 1: HOME SCREEN
+  // User Request: "Login -> Home (home page contain Normal home with needed features,My dashboard and My profile, My certification s and Logout)"
   // ========================================================
   if (currentScreen === 'HOME') {
     return (
-      <HomeScreen
-        onPlayGame={() => setCurrentScreen('ISLAND_SURVIVAL')}
-        onPlaySurvivalMode={() => setCurrentScreen('ISLAND_SURVIVAL')}
-        onOpenProfile={() => setCurrentScreen('PROFILE')}
-        onOpenLogin={() => setCurrentScreen('LOGIN')}
-        isMuted={isMuted}
-        onToggleMute={() => setIsMuted(soundManager.toggleMute())}
-        hasProfile={Boolean(player.name && player.name !== 'Cadet')}
-        studentName={player.name}
-      />
+      <>
+        <HomeScreen
+          player={player}
+          currentLevel={currentLevel}
+          onPlayGame={() => setCurrentScreen('ISLAND_SURVIVAL')}
+          onPlaySurvivalMode={() => setCurrentScreen('ISLAND_SURVIVAL')}
+          onOpenDashboard={() => setCurrentScreen('DASHBOARD')}
+          onOpenProfile={() => setCurrentScreen('PROFILE')}
+          onOpenCertifications={() => setShowCertificateModal(true)}
+          onOpenHomeBuilder={() => setShowHomeBuilderModal(true)}
+          onLogout={() => {
+            soundManager.playBeep(320, 0.05);
+            setCurrentScreen('LOGIN');
+          }}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(soundManager.toggleMute())}
+        />
+
+        {/* Certificate Modal on Home */}
+        {showCertificateModal && (
+          <CertificateModal
+            studentName={player.name}
+            rank={player.rank}
+            grade={player.grade}
+            finalHealth={resources.health}
+            finalPower={resources.power}
+            finalOxygen={resources.oxygen}
+            questionsSolved={player.totalCorrectAnswers}
+            decisionsSuccessful={stats.decisionsSuccessful}
+            onClose={() => setShowCertificateModal(false)}
+          />
+        )}
+
+        {/* Home Builder Modal on Home */}
+        {showHomeBuilderModal && (
+          <HomeBuilderModal
+            materials={player.homeMaterials}
+            structure={player.homeStructure}
+            onUpgradeHome={handleUpgradeHome}
+            onClose={() => setShowHomeBuilderModal(false)}
+          />
+        )}
+      </>
     );
   }
 
@@ -719,6 +765,19 @@ export default function App() {
           onOpenQuestionHistory={() => setShowQuestionHistoryModal(true)}
           onOpenSettings={() => setShowSaveModal(true)}
           onSaveAndExit={handleSaveAndExit}
+          onBackToHome={() => setCurrentScreen('HOME')}
+          onClaimDailyReward={(bonusCoins, bonusXp, bonusDiamonds) => {
+            setPlayer(prev => {
+              const updated = {
+                ...prev,
+                coins: prev.coins + bonusCoins,
+                xp: prev.xp + bonusXp,
+                diamonds: prev.diamonds + (bonusDiamonds || 0),
+              };
+              return updated;
+            });
+            handleSaveToLocal();
+          }}
         />
 
         {/* Home Builder Modal */}
@@ -870,14 +929,14 @@ export default function App() {
             </button>
           </div>
 
-          {/* Level Complete Force Trigger if 15 questions solved */}
+          {/* Level Complete Force Trigger if 7 questions solved */}
           <div className="flex items-center gap-2">
-            {levelSolvedIds.length >= 10 && (
+            {levelSolvedIds.length >= 7 && (
               <button
                 onClick={handleTriggerLevelComplete}
                 className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono-code text-xs font-bold transition cursor-pointer animate-pulse"
               >
-                Finish Level {currentLevel} ({levelSolvedIds.length}/15 Q)
+                Finish Level {currentLevel} ({levelSolvedIds.length}/7 Q)
               </button>
             )}
 
@@ -982,7 +1041,7 @@ export default function App() {
       {showLevelCompleteModal && (
         <LevelCompleteModal
           levelNumber={currentLevel}
-          score={levelSolvedIds.length >= 15 ? 25 : levelSolvedIds.length * 2}
+          score={levelSolvedIds.length >= 7 ? 25 : Math.round((levelSolvedIds.length / 7) * 25)}
           maxScore={25}
           materialsEarned={lastLevelMaterials}
           onProceedToNextLevel={handleProceedToNextLevel}
@@ -1087,7 +1146,7 @@ export default function App() {
           isVictory={isMissionCompleted}
           failureReason={failureReason}
           questionsSolved={stats.questionsSolved}
-          totalQuestions={15}
+          totalQuestions={7}
           correctAnswers={player.totalCorrectAnswers}
           objectivesCompleted={stats.objectivesCompleted}
           totalObjectives={5}
