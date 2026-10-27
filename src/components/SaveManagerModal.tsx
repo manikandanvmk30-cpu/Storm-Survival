@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { GameSaveData } from '../types/game';
 import { soundManager } from '../services/audio';
-import { Save, Download, Upload, RotateCcw, Check, AlertCircle, X } from 'lucide-react';
+import { saveGameToServer, loadGameFromServer } from '../services/api';
+import { Save, Download, Upload, RotateCcw, Check, AlertCircle, X, Cloud, CloudDownload, Loader2 } from 'lucide-react';
 
 interface SaveManagerModalProps {
   currentSaveData: GameSaveData;
@@ -19,6 +20,43 @@ export const SaveManagerModal: React.FC<SaveManagerModalProps> = ({
   onClose,
 }) => {
   const [msg, setMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isCloudSaving, setIsCloudSaving] = useState(false);
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
+
+  const handleCloudSave = async () => {
+    setIsCloudSaving(true);
+    try {
+      await saveGameToServer(currentSaveData.player.name, currentSaveData);
+      onSaveToLocal(); // also keep local copy
+      soundManager.playSuccess();
+      setMsg({ text: `✅ Game saved to server for Commander ${currentSaveData.player.name}!`, isError: false });
+    } catch (err) {
+      soundManager.playFailure();
+      setMsg({ text: '⚠️ Server save failed. Progress saved locally instead.', isError: true });
+      onSaveToLocal();
+    } finally {
+      setIsCloudSaving(false);
+    }
+  };
+
+  const handleCloudLoad = async () => {
+    setIsCloudLoading(true);
+    try {
+      const res = await loadGameFromServer(currentSaveData.player.name);
+      if (res.found && res.saveData) {
+        onLoadFromData(res.saveData as GameSaveData);
+        soundManager.playSuccess();
+        setMsg({ text: `✅ Cloud save loaded for Commander ${currentSaveData.player.name}!`, isError: false });
+      } else {
+        setMsg({ text: '☁️ No cloud save found for this username.', isError: true });
+      }
+    } catch {
+      soundManager.playFailure();
+      setMsg({ text: '⚠️ Could not reach the server. Check that the backend is running.', isError: true });
+    } finally {
+      setIsCloudLoading(false);
+    }
+  };
 
   const handleManualSave = () => {
     onSaveToLocal();
@@ -139,10 +177,30 @@ export const SaveManagerModal: React.FC<SaveManagerModalProps> = ({
 
         {/* Action Controls */}
         <div className="flex flex-col gap-2.5">
-          {/* Quick Save */}
+          {/* Cloud Save */}
+          <button
+            onClick={handleCloudSave}
+            disabled={isCloudSaving}
+            className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-neutral-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+          >
+            {isCloudSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+            <span>{isCloudSaving ? 'Saving to Server...' : '☁️ Save to Server (Cloud)'}</span>
+          </button>
+
+          {/* Cloud Load */}
+          <button
+            onClick={handleCloudLoad}
+            disabled={isCloudLoading}
+            className="w-full py-2.5 bg-cyan-900/40 hover:bg-cyan-800/50 border border-cyan-700/40 text-cyan-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            {isCloudLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+            <span>{isCloudLoading ? 'Loading from Server...' : '☁️ Load from Server (Cloud)'}</span>
+          </button>
+
+          {/* Quick Save Local */}
           <button
             onClick={handleManualSave}
-            className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+            className="w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-neutral-700"
           >
             <Save className="w-4 h-4" />
             <span>Save Progress (Browser Storage)</span>

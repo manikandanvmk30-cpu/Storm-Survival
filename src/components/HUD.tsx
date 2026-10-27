@@ -19,6 +19,7 @@ import {
   Save,
   HelpCircle,
 } from 'lucide-react';
+import { FullscreenButton } from './FullscreenButton';
 
 interface HUDProps {
   resources: Resources;
@@ -240,6 +241,9 @@ export const HUD: React.FC<HUDProps> = ({
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
           </button>
+
+          {/* Fullscreen Toggle */}
+          <FullscreenButton showLabel={false} className="ml-0.5" />
         </div>
       </div>
 

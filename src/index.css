@@ -48,3 +48,28 @@
   background: rgba(217, 119, 6, 0.6);
 }
 
+/* Simulated fullscreen for iOS Safari / restricted browsers */
+html.simulated-fullscreen,
+html.simulated-fullscreen body {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow: auto !important;
+  z-index: 999999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Mobile ergonomics */
+.touch-none-select {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+

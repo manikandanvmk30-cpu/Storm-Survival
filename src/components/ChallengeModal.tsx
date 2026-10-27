@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { LevelQuestion } from '../types/game';
 import { soundManager } from '../services/audio';
-import { CheckCircle2, XCircle, Gem, HelpCircle, ArrowRight, Award, Flame, Sparkles } from 'lucide-react';
+import { getAIHint } from '../services/api';
+import { CheckCircle2, XCircle, Gem, HelpCircle, ArrowRight, Award, Flame, Loader2 } from 'lucide-react';
 
 interface ChallengeModalProps {
   question: LevelQuestion;
@@ -24,6 +25,9 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   const [isAnswered, setIsAnswered] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
+  const [hintText, setHintText] = useState<string>('');
+  const [hintSource, setHintSource] = useState<string>('');
+  const [isLoadingHint, setIsLoadingHint] = useState<boolean>(false);
 
   const handleSelectOption = (index: number) => {
     if (isAnswered) return;
@@ -31,8 +35,8 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     soundManager.playBeep(520 + index * 40, 0.05);
   };
 
-  const handleSpendHint = () => {
-    if (revealedHint) return;
+  const handleSpendHint = async () => {
+    if (revealedHint || isLoadingHint) return;
     if (diamonds < 1) {
       soundManager.playFailure();
       return;
@@ -41,6 +45,22 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     if (spent) {
       soundManager.playDiamondChime();
       setRevealedHint(true);
+      setIsLoadingHint(true);
+      try {
+        const res = await getAIHint({
+          question: question.question,
+          options: question.options,
+          subject: question.subject,
+          difficulty: question.difficulty,
+        });
+        setHintText(res.hint);
+        setHintSource(res.source);
+      } catch {
+        setHintText(question.hint || 'Think carefully about the core concept and eliminate wrong answers first!');
+        setHintSource('static');
+      } finally {
+        setIsLoadingHint(false);
+      }
     }
   };
 
@@ -128,9 +148,21 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
         {revealedHint && (
           <div className="p-3 bg-cyan-950/30 border border-cyan-500/40 rounded-xl flex items-start gap-2.5 text-xs text-cyan-200 animate-in fade-in">
             <HelpCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-cyan-300">Guided Thinking Hint: </span>
-              {question.hint || 'Review the core definitions and calculate carefully step by step.'}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-cyan-300">AI Storm Hint</span>
+                {hintSource === 'gemini' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">✨ Gemini AI</span>
+                )}
+              </div>
+              {isLoadingHint ? (
+                <div className="flex items-center gap-2 text-cyan-400">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Storm AI is thinking...</span>
+                </div>
+              ) : (
+                <span>{hintText || question.hint || 'Review the core concept and eliminate clearly wrong answers first!'}</span>
+              )}
             </div>
           </div>
         )}

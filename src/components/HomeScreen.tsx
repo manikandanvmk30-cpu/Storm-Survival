@@ -27,6 +27,7 @@ import {
   FileText,
   Radio,
 } from 'lucide-react';
+import { FullscreenButton } from './FullscreenButton';
 
 interface HomeScreenProps {
   player: PlayerProfile;
@@ -179,8 +180,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </nav>
 
-        {/* Right Action Icons: Audio Toggle & Logout */}
+        {/* Right Action Icons: Fullscreen, Audio Toggle & Logout */}
         <div className="flex items-center gap-2">
+          {/* Fullscreen Button */}
+          <FullscreenButton showLabel={false} className="p-2 rounded-xl" />
+
           <button
             onClick={onToggleMute}
             className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition cursor-pointer"

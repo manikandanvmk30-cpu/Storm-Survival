@@ -1,4 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { VirtualJoystick, JoystickState } from './VirtualJoystick';
+import { ActionButtons, ActionButtonId } from './ActionButtons';
+import { FullscreenButton, useFullscreen } from './FullscreenButton';
+import { ControlsGuide, useMobileDetect } from './ControlsGuide';
 import {
   SurvivalStats,
   SurvivalInventory,
@@ -403,6 +407,105 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
   });
 
   const keysRef = useRef<{ [key: string]: boolean }>({});
+
+  // Mobile / Joystick Controls (For PC & Mobile)
+  const joystickRef = useRef<JoystickState>({ dx: 0, dy: 0, active: false });
+  const isMobile = useMobileDetect();
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const [showControlsGuide, setShowControlsGuide] = useState(false);
+  const [joystickMode, setJoystickMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('storm_survival_joystick_mode');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return isMobile;
+  });
+
+  const toggleJoystickMode = useCallback(() => {
+    setJoystickMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('storm_survival_joystick_mode', String(next));
+      } catch {}
+      soundManager.playBeep(next ? 680 : 360, 0.05);
+      setRecentLog(next ? '🎮 Joystick Mode ENABLED (PC & Mobile)' : '⌨️ Joystick Mode DISABLED');
+      return next;
+    });
+  }, []);
+
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerHeight > window.innerWidth;
+  });
+  const [dismissPortraitTip, setDismissPortraitTip] = useState(false);
+
+  useEffect(() => {
+    const handleOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener('resize', handleOrientation);
+    window.addEventListener('orientationchange', handleOrientation);
+    return () => {
+      window.removeEventListener('resize', handleOrientation);
+      window.removeEventListener('orientationchange', handleOrientation);
+    };
+  }, []);
+
+  const handleLockLandscape = useCallback(async () => {
+    try {
+      const el = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+      };
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+      }
+    } catch {}
+
+    try {
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: string) => Promise<void>;
+      };
+      if (orientation && orientation.lock) {
+        await orientation.lock('landscape');
+      }
+    } catch {}
+
+    setIsPortrait(false);
+  }, []);
+
+  const [activeKeyStates, setActiveKeyStates] = useState<{
+    up: boolean;
+    down: boolean;
+    left: boolean;
+    right: boolean;
+    space: boolean;
+    q: boolean;
+    e: boolean;
+    esc: boolean;
+  }>({
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    space: false,
+    q: false,
+    e: false,
+    esc: false,
+  });
+
+  // Handle joystick movement — merged into keysRef for unified movement logic
+  const handleJoystickMove = useCallback((state: JoystickState) => {
+    joystickRef.current = state;
+    // Map joystick to virtual key state with 0.35 threshold
+    const threshold = 0.35;
+    keysRef.current['arrowup'] = state.dy < -threshold;
+    keysRef.current['arrowdown'] = state.dy > threshold;
+    keysRef.current['arrowleft'] = state.dx < -threshold;
+    keysRef.current['arrowright'] = state.dx > threshold;
+  }, []);
+
   const debrisRef = useRef<FlyingDebrisItem[]>([]);
   const rainRef = useRef<Array<{ x: number; y: number; speed: number; len: number; opacity: number }>>([]);
   const lightningFlashRef = useRef<number>(0);
@@ -433,9 +536,29 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
   // Keyboard Event Listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = true;
+      const key = e.key.toLowerCase();
+      keysRef.current[key] = true;
       if (e.key === 'Shift') {
         playerRef.current.isSprinting = true;
+      }
+
+      // Sync active key state for virtual controller visualization
+      setActiveKeyStates(prev => ({
+        ...prev,
+        up: key === 'arrowup' || key === 'w' || prev.up,
+        down: key === 'arrowdown' || key === 's' || prev.down,
+        left: key === 'arrowleft' || key === 'a' || prev.left,
+        right: key === 'arrowright' || key === 'd' || prev.right,
+        space: e.key === ' ' || prev.space,
+        q: key === 'q' || prev.q,
+        e: key === 'e' || prev.e,
+        esc: e.key === 'Escape' || prev.esc,
+      }));
+
+      // Toggle Joystick Mode shortcut (J key)
+      if (key === 'j') {
+        e.preventDefault();
+        toggleJoystickMode();
       }
 
       // Quick-use items
@@ -443,34 +566,69 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
       if (e.key === '2') handleDrinkWater();
       if (e.key === '3') handleUseBattery();
       if (e.key === '4') handleUseFirstAid();
-      if (e.key === '5' || e.key.toLowerCase() === 'r') handleReinforceShelter();
-      if (e.key.toLowerCase() === 'e' || e.key === ' ') handleInteract();
-      if (e.key.toLowerCase() === 'f') handleToggleVehicle();
-      if (e.key.toLowerCase() === 'q') handleActivateHeroAbility();
-      if (e.key.toLowerCase() === 'h') setShowAppliancesModal(true);
-      if (e.key.toLowerCase() === 'c') setShowHeroSelectorModal(true);
-      if (e.key.toLowerCase() === 'b') setShowHomeBuilderModal(true);
-      if (e.key.toLowerCase() === 't') {
+      if (e.key === '5' || key === 'r') handleReinforceShelter();
+      if (key === 'e' || e.key === ' ') handleInteract();
+      if (key === 'f') handleToggleVehicle();
+      if (key === 'q') handleActivateHeroAbility();
+      if (key === 'h') setShowAppliancesModal(true);
+      if (key === 'c') setShowHeroSelectorModal(true);
+      if (key === 'b') setShowHomeBuilderModal(true);
+      if (key === 't') {
         soundManager.playTvChime();
         setAppliances(prev => ({
           ...prev,
           tv: { ...prev.tv, powered: !prev.tv.powered },
         }));
       }
-      if (e.key.toLowerCase() === 'l') {
+      if (key === 'l') {
         soundManager.playSwitchClick();
         setAppliances(prev => ({
           ...prev,
           lightSwitch: { ...prev.lightSwitch, turnedOn: !prev.lightSwitch.turnedOn },
         }));
       }
+      // Tab: toggle controls guide
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setShowControlsGuide(prev => !prev);
+      }
+      // Escape: cancel active panels
+      if (e.key === 'Escape') {
+        if (pendingQuizNode) {
+          setPendingQuizNode(null);
+          setActiveQuizQuestion(null);
+        } else if (showHeroSelectorModal) {
+          setShowHeroSelectorModal(false);
+        } else if (showAppliancesModal) {
+          setShowAppliancesModal(false);
+        } else if (showHomeBuilderModal) {
+          setShowHomeBuilderModal(false);
+        }
+      }
+      // M: mute toggle
+      if (key === 'm') {
+        onToggleMute();
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = false;
+      const key = e.key.toLowerCase();
+      keysRef.current[key] = false;
       if (e.key === 'Shift') {
         playerRef.current.isSprinting = false;
       }
+
+      setActiveKeyStates(prev => ({
+        ...prev,
+        up: key === 'arrowup' || key === 'w' ? false : prev.up,
+        down: key === 'arrowdown' || key === 's' ? false : prev.down,
+        left: key === 'arrowleft' || key === 'a' ? false : prev.left,
+        right: key === 'arrowright' || key === 'd' ? false : prev.right,
+        space: e.key === ' ' ? false : prev.space,
+        q: key === 'q' ? false : prev.q,
+        e: key === 'e' ? false : prev.e,
+        esc: e.key === 'Escape' ? false : prev.esc,
+      }));
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -2101,6 +2259,86 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
     soundManager.playSuccess();
   };
 
+  // Handle action / claim keys (△, □, ○, ×) for PC and Mobile
+  const handleActionButton = useCallback((action: ActionButtonId) => {
+    if (action === 'circle') {
+      // ○ Circle: Primary Claim / Interact / Option C
+      if (pendingQuizNode && quizIsAnswered) {
+        handleClaimQuizReward();
+      } else if (pendingQuizNode && !quizIsAnswered) {
+        if (quizSelectedIndex === 2) {
+          handleQuizSubmit();
+        } else if (activeQuizQuestion?.options[2] !== undefined) {
+          setQuizSelectedIndex(2);
+          soundManager.playBeep(520, 0.05);
+        } else if (quizSelectedIndex !== null) {
+          handleQuizSubmit();
+        }
+      } else {
+        handleInteract();
+      }
+    } else if (action === 'square') {
+      // □ Square: Repair / Reinforce Shelter / Option B
+      if (pendingQuizNode && !quizIsAnswered) {
+        if (activeQuizQuestion?.options[1] !== undefined) {
+          setQuizSelectedIndex(1);
+          soundManager.playBeep(480, 0.05);
+        }
+      } else {
+        handleReinforceShelter();
+      }
+    } else if (action === 'triangle') {
+      // △ Triangle: Hero Ability / Jump / Option A
+      if (pendingQuizNode && !quizIsAnswered) {
+        if (activeQuizQuestion?.options[0] !== undefined) {
+          setQuizSelectedIndex(0);
+          soundManager.playBeep(440, 0.05);
+        }
+      } else {
+        handleActivateHeroAbility();
+      }
+    } else if (action === 'cross') {
+      // × Cross: Cancel / Close / Option D
+      if (pendingQuizNode && !quizIsAnswered) {
+        if (quizSelectedIndex !== 3 && activeQuizQuestion?.options[3] !== undefined) {
+          setQuizSelectedIndex(3);
+          soundManager.playBeep(560, 0.05);
+        } else {
+          setPendingQuizNode(null);
+          setActiveQuizQuestion(null);
+        }
+      } else if (pendingQuizNode && quizIsAnswered) {
+        setPendingQuizNode(null);
+        setActiveQuizQuestion(null);
+      } else if (isDrivingBuggy) {
+        handleToggleVehicle();
+      } else if (showHomeBuilderModal) {
+        setShowHomeBuilderModal(false);
+      } else if (showAppliancesModal) {
+        setShowAppliancesModal(false);
+      } else if (showHeroSelectorModal) {
+        setShowHeroSelectorModal(false);
+      } else if (showControlsGuide) {
+        setShowControlsGuide(false);
+      }
+    }
+  }, [
+    pendingQuizNode,
+    quizIsAnswered,
+    quizSelectedIndex,
+    activeQuizQuestion,
+    handleClaimQuizReward,
+    handleQuizSubmit,
+    handleInteract,
+    handleReinforceShelter,
+    handleActivateHeroAbility,
+    isDrivingBuggy,
+    showHomeBuilderModal,
+    showAppliancesModal,
+    showHeroSelectorModal,
+    showControlsGuide,
+  ]);
+
   // Reset Game
   const handleRestart = () => {
     setStats({
@@ -2135,262 +2373,282 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
     setRecentLog(`⚠️ STORM WARNING: 30s until landfall! ${activeHero.name} ready for defense!`);
   };
 
+  // Horizontal/immersive view is active only when fullscreen is triggered
+  const isHorizontalGameView = isFullscreen;
+
   return (
-    <div className="relative min-h-screen w-full flex flex-col bg-neutral-950 text-neutral-100 select-none overflow-x-hidden">
-      {/* Top Header & Status Bar */}
-      <header className="w-full bg-neutral-900/95 border-b border-neutral-800 px-4 py-2 flex items-center justify-between z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToMenu}
-            className="px-2.5 py-1 text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 rounded-lg text-neutral-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
-          >
-            ← Menu
-          </button>
-
-          {/* Student Cadet Username Badge & Switch User */}
-          {onSwitchUser && (
-            <button
-              onClick={onSwitchUser}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-mono-code transition cursor-pointer"
-              title="Click to Switch Student User / Logout to Login Page"
-            >
-              <User className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-300 font-bold truncate max-w-[85px] sm:max-w-[120px]">
-                {player.name}
-              </span>
-              <span className="text-[10px] text-neutral-400 font-mono-code">⇄</span>
-            </button>
-          )}
-
-          {/* Active Superhero Badge & Switcher */}
-          <button
-            onClick={() => setShowHeroSelectorModal(true)}
-            className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition cursor-pointer"
-            title="Click to Switch Superhero"
-          >
-            <span className="text-xl">{activeHero.portrait}</span>
-            <div className="text-left">
-              <div className="text-xs font-bold font-display text-amber-400 leading-none">
-                {activeHero.name}
+    <div
+      className={`relative min-h-screen w-full flex flex-col bg-neutral-950 text-neutral-100 select-none ${
+        isHorizontalGameView ? 'overflow-hidden' : 'overflow-x-hidden'
+      }`}
+    >
+      {/* NON-BLOCKING MOBILE ROTATION TIP FOR PORTRAIT ORIENTATION */}
+      {isMobile && isPortrait && !dismissPortraitTip && (
+        <aside
+          role="region"
+          aria-label="Screen orientation suggestion"
+          className="fixed top-2 left-2 right-2 z-[300] bg-neutral-900/95 border-2 border-amber-500/60 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xl shadow-black/80 backdrop-blur-xl animate-in slide-in-from-top-3"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shrink-0 animate-bounce">
+              📱🔄
+            </div>
+            <div className="min-w-0 text-left">
+              <div className="text-xs font-bold font-display text-amber-300">
+                Landscape Mode Recommended
               </div>
-              <span className="text-[10px] text-neutral-400 font-mono-code">
-                [C] Switch Hero
-              </span>
+              <p className="text-[11px] text-neutral-300 truncate">
+                Rotate device or enter fullscreen for widescreen radar & controls.
+              </p>
             </div>
-          </button>
-
-          {/* 50-Level Academy Tracker */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono-code">
-            <Award className="w-3.5 h-3.5" />
-            <span>
-              Level <strong className="text-white">{currentLevel}</strong> / 50 · ({levelSolvedCount}/7 Questions)
-            </span>
           </div>
-
-          {/* Rebuild Home Workshop Button */}
-          <button
-            onClick={() => setShowHomeBuilderModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-mono-code transition cursor-pointer"
-          >
-            <HomeIcon className="w-3.5 h-3.5 text-amber-400" />
-            <span>Rebuild Home (L{player.homeStructure.level}) [B]</span>
-          </button>
-
-          {/* Home Appliances Button: TV, Fridge, Switch, Light, Fan, Microwave */}
-          <button
-            onClick={() => setShowAppliancesModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 text-xs font-mono-code transition cursor-pointer shadow-sm"
-            title="Open Home Living Room & Smart Appliances"
-          >
-            <Tv className="w-3.5 h-3.5 text-sky-400" />
-            <span>Home Appliances [H]</span>
-          </button>
-        </div>
-
-        {/* Phase Timer Banner & Controls */}
-        {/* Phase Timer Banner & Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* User Request: 5 Minutes Playing Time */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-950/80 border border-cyan-500/30 text-xs font-mono-code text-cyan-300"
-            title="Total Island Playing Time (5 Minutes)"
-          >
-            <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Play Time: <strong className="text-white font-bold">{formatTime(playingTimeSecondsLeft)}</strong>/05:00</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleLockLandscape}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-[11px] uppercase tracking-wider shadow-md shadow-amber-500/30 active:scale-95 transition cursor-pointer"
+            >
+              ⛶ Fullscreen
+            </button>
+            <button
+              onClick={() => setDismissPortraitTip(true)}
+              className="p-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition cursor-pointer"
+              title="Dismiss notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
+        </aside>
+      )}
 
-          {/* User Request: Level Promotion Quest Tracker (Build 5 homes & rescue from storm 2 times) */}
-          <button
-            onClick={() => setShowHomeBuilderModal(true)}
-            className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-950/80 hover:bg-neutral-900 border border-amber-500/40 text-xs font-mono-code transition cursor-pointer"
-            title="Level Promotion: Build 5 Homes & Rescue 2 Times"
-          >
-            <span className="text-amber-400 font-bold">🏆 Promo Quest:</span>
-            <span className={homesBuiltCount >= 5 ? 'text-emerald-400 font-bold' : 'text-neutral-300'}>
-              🏡 {homesBuiltCount}/5 {homesBuiltCount >= 5 ? '✅' : ''}
-            </span>
-            <span className="text-neutral-600">·</span>
-            <span className={rescuedFromStormCount >= 2 ? 'text-emerald-400 font-bold' : 'text-neutral-300'}>
-              🛡️ {rescuedFromStormCount}/2 {rescuedFromStormCount >= 2 ? '✅' : ''}
-            </span>
-            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
-              {player.rank}
-            </span>
-          </button>
-
-          {/* User Request: Storm Time into 30 Seconds */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-neutral-950/80 border border-neutral-800 text-xs font-mono-code">
-            <span className="text-neutral-400 text-[10px] uppercase font-bold mr-0.5">Storm:</span>
-            {[30, 45, 60, 90, 120].map(sec => (
+      {/* Outer Header & Status Bar (Shown only in Desktop Windowed Mode) */}
+      {!isHorizontalGameView && (
+        <>
+          <header className="w-full bg-neutral-900/95 border-b border-neutral-800 px-4 py-2 flex items-center justify-between z-20 backdrop-blur-md">
+            <div className="flex items-center gap-3">
               <button
-                key={sec}
-                onClick={() => {
-                  setStormDurationSeconds(sec);
-                  soundManager.playBeep(440 + (sec / 10) * 20, 0.05);
-                  if (phase === 'storm') {
-                    setPhaseSecondsLeft(sec);
-                  }
-                  setRecentLog(`⏱️ Storm duration set to ${sec} seconds!`);
-                }}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                  stormDurationSeconds === sec
-                    ? 'bg-rose-500 text-white shadow-sm font-black ring-1 ring-rose-400'
-                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                }`}
-                title={`Set Storm duration to ${sec}s`}
+                onClick={onBackToMenu}
+                className="px-2.5 py-1 text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 rounded-lg text-neutral-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
               >
-                {sec}s
+                ← Menu
               </button>
-            ))}
-          </div>
 
-          <div
-            className={`flex items-center gap-2 px-3 py-1 rounded-xl border font-mono-code text-xs font-bold ${
-              phase === 'storm'
-                ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse'
-                : phase === 'warning'
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-            }`}
-          >
-            <Wind className="w-3.5 h-3.5" />
-            <span>
-              {phase === 'warning' && `Storm in ${phaseSecondsLeft}s`}
-              {phase === 'storm' && `🌪️ Cyclone: ${phaseSecondsLeft}s left`}
-              {phase === 'aftermath' && `Calm window: ${phaseSecondsLeft}s`}
-              {phase === 'victory' && 'RESCUED!'}
-              {phase === 'defeat' && 'FALLEN'}
-            </span>
-          </div>
+              {/* Student Cadet Username Badge */}
+              {onSwitchUser && (
+                <button
+                  onClick={onSwitchUser}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-mono-code transition cursor-pointer"
+                  title="Click to Switch Student User / Logout to Login Page"
+                >
+                  <User className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-amber-300 font-bold truncate max-w-[85px] sm:max-w-[120px]">
+                    {player.name}
+                  </span>
+                  <span className="text-[10px] text-neutral-400 font-mono-code">⇄</span>
+                </button>
+              )}
 
-          {evacuationCalled && evacTimer > 0 && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-mono-code text-xs animate-bounce">
-              <Radio className="w-3.5 h-3.5" />
-              <span>Chopper: {evacTimer}s</span>
+              {/* Active Superhero Badge */}
+              <button
+                onClick={() => setShowHeroSelectorModal(true)}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition cursor-pointer"
+                title="Click to Switch Superhero"
+              >
+                <span className="text-xl">{activeHero.portrait}</span>
+                <div className="text-left">
+                  <div className="text-xs font-bold font-display text-amber-400 leading-none">
+                    {activeHero.name}
+                  </div>
+                  <span className="text-[10px] text-neutral-400 font-mono-code">
+                    [C] Switch Hero
+                  </span>
+                </div>
+              </button>
+
+              {/* 50-Level Academy Tracker */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono-code">
+                <Award className="w-3.5 h-3.5" />
+                <span>
+                  Level <strong className="text-white">{currentLevel}</strong> / 50 · ({levelSolvedCount}/7 Questions)
+                </span>
+              </div>
+
+              {/* Rebuild Home Workshop Button */}
+              <button
+                onClick={() => setShowHomeBuilderModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-mono-code transition cursor-pointer"
+              >
+                <HomeIcon className="w-3.5 h-3.5 text-amber-400" />
+                <span>Rebuild Home (L{player.homeStructure.level}) [B]</span>
+              </button>
+
+              {/* Home Appliances Button */}
+              <button
+                onClick={() => setShowAppliancesModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 text-xs font-mono-code transition cursor-pointer shadow-sm"
+                title="Open Home Living Room & Smart Appliances"
+              >
+                <Tv className="w-3.5 h-3.5 text-sky-400" />
+                <span>Home Appliances [H]</span>
+              </button>
             </div>
-          )}
 
-          <button
-            onClick={onToggleMute}
-            className="p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
-          </button>
-        </div>
-      </header>
+            {/* Phase Timer Banner & Controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-950/80 border border-cyan-500/30 text-xs font-mono-code text-cyan-300"
+                title="Total Island Playing Time (5 Minutes)"
+              >
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Play Time: <strong className="text-white font-bold">{formatTime(playingTimeSecondsLeft)}</strong>/05:00</span>
+              </div>
 
-      {/* 5 SURVIVAL STAT METERS */}
-      <div className="w-full bg-neutral-900/95 border-b border-neutral-800 px-4 py-2 grid grid-cols-2 sm:grid-cols-5 gap-2 z-10 text-xs">
-        {/* ❤️ Health */}
-        <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-rose-400 font-bold">
-              <Heart className="w-3.5 h-3.5 fill-rose-500" /> Health
-            </span>
-            <span className="font-mono-code font-bold text-rose-300">{Math.round(stats.health)}%</span>
-          </div>
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-rose-500 h-full transition-all duration-300"
-              style={{ width: `${Math.max(0, stats.health)}%` }}
-            />
-          </div>
-        </div>
+              <div
+                className={`flex items-center gap-2 px-3 py-1 rounded-xl border font-mono-code text-xs font-bold ${
+                  phase === 'storm'
+                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse'
+                    : phase === 'warning'
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                    : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                }`}
+              >
+                <Wind className="w-3.5 h-3.5" />
+                <span>
+                  {phase === 'warning' && `Storm in ${phaseSecondsLeft}s`}
+                  {phase === 'storm' && `🌪️ Cyclone: ${phaseSecondsLeft}s left`}
+                  {phase === 'aftermath' && `Calm window: ${phaseSecondsLeft}s`}
+                  {phase === 'victory' && 'RESCUED!'}
+                  {phase === 'defeat' && 'FALLEN'}
+                </span>
+              </div>
 
-        {/* 🍗 Hunger */}
-        <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-amber-400 font-bold">🍗 Hunger</span>
-            <span className="font-mono-code font-bold text-amber-300">{Math.round(stats.hunger)}%</span>
-          </div>
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-amber-500 h-full transition-all duration-300"
-              style={{ width: `${Math.max(0, stats.hunger)}%` }}
-            />
-          </div>
-        </div>
+              <button
+                onClick={onToggleMute}
+                className="p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition cursor-pointer"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
+              </button>
 
-        {/* 💧 Water */}
-        <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-cyan-400 font-bold">
-              <Droplet className="w-3.5 h-3.5 fill-cyan-500" /> Water
-            </span>
-            <span className="font-mono-code font-bold text-cyan-300">{Math.round(stats.water)}%</span>
-          </div>
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-cyan-500 h-full transition-all duration-300"
-              style={{ width: `${Math.max(0, stats.water)}%` }}
-            />
-          </div>
-        </div>
+              <FullscreenButton showLabel={true} className="ml-1" />
 
-        {/* 🔋 Energy */}
-        <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-yellow-400 font-bold">
-              <Zap className="w-3.5 h-3.5 fill-yellow-500" /> Energy
-            </span>
-            <span className="font-mono-code font-bold text-yellow-300">{Math.round(stats.energy)}%</span>
-          </div>
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-yellow-500 h-full transition-all duration-300"
-              style={{ width: `${Math.max(0, stats.energy)}%` }}
-            />
-          </div>
-        </div>
+              <button
+                onClick={() => setShowControlsGuide(prev => !prev)}
+                title="Controls Guide [Tab]"
+                className="p-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-amber-300 border border-neutral-700/50 transition cursor-pointer"
+              >
+                <Sliders className="w-4 h-4" />
+              </button>
 
-        {/* 🏠 Shelter strength */}
-        <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800 col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <Shield className="w-3.5 h-3.5 fill-emerald-500" /> Shelter Integrity
-            </span>
-            <span className="font-mono-code font-bold text-emerald-300">
-              {Math.round(stats.shelterStrength)}%
-            </span>
+              <button
+                onClick={toggleJoystickMode}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border font-mono text-xs font-bold transition-all cursor-pointer shadow-sm select-none active:scale-95 ${
+                  joystickMode
+                    ? 'bg-amber-500 text-neutral-950 border-amber-300 shadow-amber-500/25 ring-1 ring-amber-400'
+                    : 'bg-neutral-800 text-neutral-300 border-neutral-700 hover:text-white hover:bg-neutral-700'
+                }`}
+                title="Toggle Joystick Mode for PC & Mobile [J]"
+              >
+                <span>🎮</span>
+                <span>Joystick: {joystickMode ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Desktop 5 Survival Stat Meters */}
+          <div className="w-full bg-neutral-900/95 border-b border-neutral-800 px-4 py-2 grid grid-cols-5 gap-2 z-10 text-xs">
+            {/* ❤️ Health */}
+            <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-rose-400 font-bold">
+                  <Heart className="w-3.5 h-3.5 fill-rose-500" /> Health
+                </span>
+                <span className="font-mono-code font-bold text-rose-300">{Math.round(stats.health)}%</span>
+              </div>
+              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-rose-500 h-full transition-all duration-300" style={{ width: `${Math.max(0, stats.health)}%` }} />
+              </div>
+            </div>
+
+            {/* 🍗 Hunger */}
+            <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-amber-400 font-bold">🍗 Hunger</span>
+                <span className="font-mono-code font-bold text-amber-300">{Math.round(stats.hunger)}%</span>
+              </div>
+              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-amber-500 h-full transition-all duration-300" style={{ width: `${Math.max(0, stats.hunger)}%` }} />
+              </div>
+            </div>
+
+            {/* 💧 Water */}
+            <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-cyan-400 font-bold">
+                  <Droplet className="w-3.5 h-3.5 fill-cyan-500" /> Water
+                </span>
+                <span className="font-mono-code font-bold text-cyan-300">{Math.round(stats.water)}%</span>
+              </div>
+              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-cyan-500 h-full transition-all duration-300" style={{ width: `${Math.max(0, stats.water)}%` }} />
+              </div>
+            </div>
+
+            {/* 🔋 Energy */}
+            <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-yellow-400 font-bold">
+                  <Zap className="w-3.5 h-3.5 fill-yellow-500" /> Energy
+                </span>
+                <span className="font-mono-code font-bold text-yellow-300">{Math.round(stats.energy)}%</span>
+              </div>
+              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${Math.max(0, stats.energy)}%` }} />
+              </div>
+            </div>
+
+            {/* 🏠 Shelter strength */}
+            <div className="flex flex-col gap-1 p-2 rounded-xl bg-neutral-950/60 border border-neutral-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <Shield className="w-3.5 h-3.5 fill-emerald-500" /> Shelter Integrity
+                </span>
+                <span className="font-mono-code font-bold text-emerald-300">
+                  {Math.round(stats.shelterStrength)}%
+                </span>
+              </div>
+              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full transition-all duration-300" style={{ width: `${Math.max(0, stats.shelterStrength)}%` }} />
+              </div>
+            </div>
           </div>
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-emerald-500 h-full transition-all duration-300"
-              style={{ width: `${Math.max(0, stats.shelterStrength)}%` }}
-            />
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Main Interactive Canvas & Game Viewport */}
-      <div className="relative flex-1 flex flex-col items-center justify-center p-2 sm:p-4 bg-neutral-950">
-        <div className="relative w-full max-w-5xl rounded-2xl overflow-hidden border border-neutral-800 shadow-2xl bg-black">
+      <div
+        className={`relative select-none ${
+          isHorizontalGameView
+            ? 'fixed inset-0 z-40 w-screen h-screen flex items-center justify-center bg-black overflow-hidden'
+            : 'relative flex-1 flex flex-col items-center justify-center p-2 sm:p-4 bg-neutral-950'
+        }`}
+      >
+        <div
+          className={`relative overflow-hidden bg-black ${
+            isHorizontalGameView
+              ? 'w-full h-full flex items-center justify-center'
+              : 'w-full max-w-5xl rounded-2xl border border-neutral-800 shadow-2xl'
+          }`}
+        >
           <canvas
             ref={canvasRef}
             width={1000}
             height={640}
-            className="w-full h-auto block select-none cursor-crosshair"
+            className={`${
+              isHorizontalGameView
+                ? 'w-full h-full max-w-full max-h-full object-contain block select-none cursor-crosshair'
+                : 'w-full h-auto max-h-[62vh] object-contain block select-none cursor-crosshair'
+            }`}
             onClick={e => {
+              // Click-to-move for laptop / desktop / touch
               const rect = e.currentTarget.getBoundingClientRect();
               const scaleX = 1000 / rect.width;
               const scaleY = 640 / rect.height;
@@ -2398,11 +2656,165 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
               const targetY = (e.clientY - rect.top) * scaleY;
               playerRef.current.x = Math.max(40, Math.min(960, targetX));
               playerRef.current.y = Math.max(50, Math.min(710, targetY));
+              playerRef.current.facing = targetX > playerRef.current.x ? 'right' : 'left';
             }}
           />
 
-          {/* Location & Shelter indicator */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
+          {/* ========================================================
+              TOP IN-GAME ATTRIBUTES & STATUS HUD BAR (Directly on Canvas)
+              ======================================================== */}
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 z-30 pointer-events-none">
+            {/* Left: Menu & 5 Core Survival Attributes */}
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-neutral-950/85 backdrop-blur-md px-2 py-1 rounded-xl border border-neutral-800/90 shadow-xl pointer-events-auto">
+              <button
+                onClick={onBackToMenu}
+                className="px-2 py-0.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white font-mono text-[10px] font-bold transition cursor-pointer"
+                title="Back to Menu"
+              >
+                ← Menu
+              </button>
+
+              {/* ❤️ Health */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-950/50 border border-rose-500/30" title="Health">
+                <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-rose-300">
+                  {Math.round(stats.health)}%
+                </span>
+                <div className="hidden sm:block w-7 bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-rose-500 h-full" style={{ width: `${Math.max(0, stats.health)}%` }} />
+                </div>
+              </div>
+
+              {/* 🍗 Hunger */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-amber-950/50 border border-amber-500/30" title="Hunger">
+                <span className="text-[11px] leading-none">🍗</span>
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-amber-300">
+                  {Math.round(stats.hunger)}%
+                </span>
+                <div className="hidden sm:block w-7 bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-amber-500 h-full" style={{ width: `${Math.max(0, stats.hunger)}%` }} />
+                </div>
+              </div>
+
+              {/* 💧 Water */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-cyan-950/50 border border-cyan-500/30" title="Water">
+                <Droplet className="w-3 h-3 text-cyan-400 fill-cyan-400" />
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-cyan-300">
+                  {Math.round(stats.water)}%
+                </span>
+                <div className="hidden sm:block w-7 bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-cyan-500 h-full" style={{ width: `${Math.max(0, stats.water)}%` }} />
+                </div>
+              </div>
+
+              {/* ⚡ Energy */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-yellow-950/50 border border-yellow-500/30" title="Energy">
+                <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-yellow-300">
+                  {Math.round(stats.energy)}%
+                </span>
+                <div className="hidden sm:block w-7 bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-yellow-500 h-full" style={{ width: `${Math.max(0, stats.energy)}%` }} />
+                </div>
+              </div>
+
+              {/* 🛡️ Shelter */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-emerald-950/50 border border-emerald-500/30" title="Shelter Strength">
+                <Shield className="w-3 h-3 text-emerald-400 fill-emerald-400" />
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-emerald-300">
+                  {Math.round(stats.shelterStrength)}%
+                </span>
+                <div className="hidden sm:block w-7 bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full" style={{ width: `${Math.max(0, stats.shelterStrength)}%` }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Center: Storm Countdown Alert */}
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-mono text-[11px] sm:text-xs font-bold backdrop-blur-md shadow-xl pointer-events-auto ${
+                phase === 'storm'
+                  ? 'bg-rose-950/90 border-rose-500/60 text-rose-300 animate-pulse'
+                  : phase === 'warning'
+                  ? 'bg-amber-950/90 border-amber-500/50 text-amber-300'
+                  : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
+              }`}
+            >
+              <Wind className="w-3.5 h-3.5" />
+              <span>
+                {phase === 'warning' && `Storm: ${phaseSecondsLeft}s`}
+                {phase === 'storm' && `🌪️ Cyclone: ${phaseSecondsLeft}s`}
+                {phase === 'aftermath' && `Calm: ${phaseSecondsLeft}s`}
+                {phase === 'victory' && 'Rescued!'}
+                {phase === 'defeat' && 'Fallen'}
+              </span>
+            </div>
+
+            {/* Right: Quest, Workshop & Controls */}
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-neutral-950/85 backdrop-blur-md px-2 py-1 rounded-xl border border-neutral-800/90 shadow-xl pointer-events-auto">
+              {/* Rescue Parts */}
+              <div className="hidden md:flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono text-neutral-300">
+                <Radio className="w-3 h-3 text-cyan-400" />
+                <span className={inventory.beaconParts.antenna ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>📡</span>
+                <span className={inventory.beaconParts.battery ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>⚡</span>
+                <span className={inventory.beaconParts.flare ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>🚨</span>
+              </div>
+
+              {/* Curriculum Quiz Progress */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-neutral-900 border border-neutral-800 text-[10px] font-mono font-bold text-amber-300">
+                <span>L{currentLevel}:</span>
+                <span className="text-white">{levelSolvedCount}/7</span>
+              </div>
+
+              {/* Rebuild Home Workshop */}
+              <button
+                onClick={() => setShowHomeBuilderModal(true)}
+                className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold cursor-pointer"
+                title="Rebuild Home [B]"
+              >
+                <HomeIcon className="w-3 h-3 text-amber-400" />
+                <span>Home L{player.homeStructure.level}</span>
+              </button>
+
+              {/* Home Appliances Button */}
+              <button
+                onClick={() => setShowAppliancesModal(true)}
+                className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-[10px] font-mono font-bold cursor-pointer"
+                title="Home Appliances [H]"
+              >
+                <Tv className="w-3 h-3 text-sky-400" />
+                <span>Appliances</span>
+              </button>
+
+              {/* Joystick Mode Toggle */}
+              <button
+                onClick={toggleJoystickMode}
+                className={`px-2 py-1 rounded-lg border text-[10px] font-mono font-bold cursor-pointer transition active:scale-95 ${
+                  joystickMode
+                    ? 'bg-amber-500 text-neutral-950 border-amber-300 shadow-sm'
+                    : 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:text-white'
+                }`}
+                title="Toggle Joystick Mode [J]"
+              >
+                🎮 {joystickMode ? 'ON' : 'OFF'}
+              </button>
+
+              {/* Audio Mute */}
+              <button
+                onClick={onToggleMute}
+                className="p-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white border border-neutral-700 transition cursor-pointer"
+                title={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+              </button>
+
+              {/* Fullscreen Button */}
+              <FullscreenButton variant="default" showLabel={false} className="p-1 rounded-lg border-neutral-700" />
+            </div>
+          </div>
+
+          {/* Location & Shelter indicator + Interactive Prompts (below top bar) */}
+          <div className="absolute top-12 left-3 flex flex-col gap-1.5 pointer-events-none z-20">
             <div
               className={`px-3 py-1.5 rounded-xl border text-xs font-semibold backdrop-blur-md flex items-center gap-2 ${
                 isInsideShelter
@@ -2434,20 +2846,20 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
 
             {/* Prompt when near appliance inside shelter */}
             {isInsideShelter && nearApplianceId && (
-              <div className="px-3.5 py-2 rounded-xl bg-sky-500 text-neutral-950 font-black text-xs flex items-center gap-2.5 shadow-xl animate-bounce pointer-events-auto">
+              <div className="px-3.5 py-1.5 rounded-xl bg-sky-500 text-neutral-950 font-black text-xs flex items-center gap-2 shadow-xl animate-bounce pointer-events-auto">
                 <span className="text-base">{APPLIANCE_STATIONS.find(a => a.id === nearApplianceId)?.icon}</span>
                 <span>
                   Press [E] or Click: {APPLIANCE_STATIONS.find(a => a.id === nearApplianceId)?.prompt}
                 </span>
                 <button
                   onClick={handleInteract}
-                  className="px-2.5 py-1 bg-neutral-950 text-sky-300 rounded-lg text-xs font-bold cursor-pointer hover:bg-neutral-900"
+                  className="px-2.5 py-0.5 bg-neutral-950 text-sky-300 rounded-lg text-xs font-bold cursor-pointer hover:bg-neutral-900"
                 >
                   Interact
                 </button>
                 <button
                   onClick={() => setShowAppliancesModal(true)}
-                  className="px-2 py-1 bg-sky-950 text-sky-200 border border-sky-400/40 rounded-lg text-[10px] font-bold cursor-pointer hover:bg-sky-900"
+                  className="px-2 py-0.5 bg-sky-950 text-sky-200 border border-sky-400/40 rounded-lg text-[10px] font-bold cursor-pointer hover:bg-sky-900"
                 >
                   All Appliances [H]
                 </button>
@@ -2456,14 +2868,14 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
 
             {/* Prompt when near interactive cache */}
             {nearNode && nearNode.available && (
-              <div className="px-3.5 py-2 rounded-xl bg-amber-500 text-neutral-950 font-black text-xs flex items-center gap-2.5 shadow-xl animate-bounce pointer-events-auto">
+              <div className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-neutral-950 font-black text-xs flex items-center gap-2 shadow-xl animate-bounce pointer-events-auto">
                 <span className="text-base">{nearNode.icon}</span>
                 <span>
                   Press [E] or Click: Attend Quiz to Unlock {nearNode.name}!
                 </span>
                 <button
                   onClick={handleInteract}
-                  className="px-2.5 py-1 bg-neutral-950 text-amber-400 rounded-lg text-xs font-bold cursor-pointer hover:bg-neutral-900"
+                  className="px-2.5 py-0.5 bg-neutral-950 text-amber-400 rounded-lg text-xs font-bold cursor-pointer hover:bg-neutral-900"
                 >
                   Start Quiz
                 </button>
@@ -2471,67 +2883,137 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
             )}
           </div>
 
-          {/* Superhero Ability Indicator Overlay */}
-          <div className="absolute bottom-10 left-3 pointer-events-auto flex items-center gap-2">
-            <button
-              onClick={handleActivateHeroAbility}
-              disabled={heroAbilityCooldown > 0}
-              className={`px-3.5 py-2 rounded-xl border flex items-center gap-2 text-xs font-bold backdrop-blur-md transition cursor-pointer shadow-lg active:scale-95 ${
-                heroAbilityCooldown === 0
-                  ? 'bg-amber-500 hover:bg-amber-400 text-neutral-950 border-amber-300 shadow-amber-500/20 animate-pulse'
-                  : 'bg-neutral-900/85 text-neutral-400 border-neutral-800'
-              }`}
-            >
-              <Zap className="w-4 h-4 fill-current" />
-              <span>
-                [Q] {activeHero.abilityName}{' '}
-                {heroAbilityCooldown > 0 ? `(${heroAbilityCooldown}s)` : 'READY!'}
-              </span>
-            </button>
+          {/* ========================================================
+              BOTTOM-LEFT: VIRTUAL JOYSTICK WITH D-PAD ARROWS
+              ======================================================== */}
+          {joystickMode && phase !== 'victory' && phase !== 'defeat' && (
+            <div className="absolute bottom-3 left-3 z-30 pointer-events-auto flex flex-col items-center">
+              <VirtualJoystick
+                onMove={handleJoystickMove}
+                size={isMobile ? 124 : 134}
+                opacity={pendingQuizNode && !quizIsAnswered ? 0.35 : 0.94}
+                activeDirections={{
+                  up: activeKeyStates.up,
+                  down: activeKeyStates.down,
+                  left: activeKeyStates.left,
+                  right: activeKeyStates.right,
+                }}
+              />
+            </div>
+          )}
+
+          {/* ========================================================
+              BOTTOM-RIGHT: CLAIM KEYS (○ □ △ ×) & QUICK ITEMS
+              ======================================================== */}
+          {joystickMode && phase !== 'victory' && phase !== 'defeat' && (
+            <div className="absolute bottom-3 right-3 z-30 pointer-events-auto flex flex-col items-end gap-1.5">
+              {/* Quick Items Row */}
+              <div className="flex items-center gap-1 bg-neutral-950/85 backdrop-blur-md p-1 rounded-xl border border-neutral-800/80 shadow-lg">
+                <button
+                  onClick={handleEatFood}
+                  onTouchStart={e => { e.preventDefault(); handleEatFood(); }}
+                  disabled={inventory.food <= 0}
+                  className="w-9 h-9 rounded-lg bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-xs active:scale-90 cursor-pointer disabled:opacity-40"
+                  title="Eat Food [1]"
+                >
+                  🍗
+                  <span className="text-[8px] text-amber-400 font-mono leading-none font-bold">x{inventory.food}</span>
+                </button>
+                <button
+                  onClick={handleDrinkWater}
+                  onTouchStart={e => { e.preventDefault(); handleDrinkWater(); }}
+                  disabled={inventory.water <= 0}
+                  className="w-9 h-9 rounded-lg bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-xs active:scale-90 cursor-pointer disabled:opacity-40"
+                  title="Drink Water [2]"
+                >
+                  💧
+                  <span className="text-[8px] text-cyan-400 font-mono leading-none font-bold">x{inventory.water}</span>
+                </button>
+                <button
+                  onClick={handleUseFirstAid}
+                  onTouchStart={e => { e.preventDefault(); handleUseFirstAid(); }}
+                  disabled={inventory.firstAid <= 0}
+                  className="w-9 h-9 rounded-lg bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-xs active:scale-90 cursor-pointer disabled:opacity-40"
+                  title="First Aid [4]"
+                >
+                  🩹
+                  <span className="text-[8px] text-rose-400 font-mono leading-none font-bold">x{inventory.firstAid}</span>
+                </button>
+                <button
+                  onClick={handleUseBattery}
+                  onTouchStart={e => { e.preventDefault(); handleUseBattery(); }}
+                  disabled={inventory.batteries <= 0}
+                  className="w-9 h-9 rounded-lg bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-xs active:scale-90 cursor-pointer disabled:opacity-40"
+                  title="Battery [3]"
+                >
+                  🔋
+                  <span className="text-[8px] text-yellow-400 font-mono leading-none font-bold">x{inventory.batteries}</span>
+                </button>
+                <button
+                  onClick={handleActivateHeroAbility}
+                  onTouchStart={e => { e.preventDefault(); handleActivateHeroAbility(); }}
+                  disabled={heroAbilityCooldown > 0}
+                  className={`h-9 px-2 rounded-lg text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 ${
+                    heroAbilityCooldown === 0
+                      ? 'bg-amber-500 text-neutral-950 border-amber-300 font-black animate-pulse'
+                      : 'bg-neutral-800 text-neutral-500 border-neutral-700'
+                  }`}
+                  title={`${activeHero.abilityName} [Q]`}
+                >
+                  ⚡ {heroAbilityCooldown > 0 ? `${heroAbilityCooldown}s` : 'READY'}
+                </button>
+              </div>
+
+              {/* Action / Claim Keys (○ □ △ ×) */}
+              <ActionButtons
+                onAction={handleActionButton}
+                questionActive={!!pendingQuizNode}
+                questionAnswered={quizIsAnswered}
+                canClaimReward={quizIsCorrect}
+                nearInteractive={!!(nearNode && nearNode.available)}
+                interactivePrompt={nearNode ? `CLAIM ${nearNode.name.toUpperCase()} [○]` : undefined}
+                activeKeys={{
+                  space: activeKeyStates.space,
+                  q: activeKeyStates.q,
+                  e: activeKeyStates.e,
+                  esc: activeKeyStates.esc,
+                }}
+                size={isMobile ? 44 : 48}
+                opacity={0.94}
+              />
+            </div>
+          )}
+
+          {/* Action Log Banner at Bottom Center */}
+          <div className="absolute bottom-2 left-36 right-36 pointer-events-none text-center z-20">
+            <div className="inline-block max-w-full px-3 py-1 rounded-xl bg-neutral-950/90 border border-neutral-800 backdrop-blur-md text-[11px] font-mono-code text-neutral-300 truncate shadow-lg">
+              <span className="text-amber-400 font-bold mr-1.5">ℹ️ LOG:</span>
+              <span>{recentLog}</span>
+            </div>
           </div>
 
-          {/* Evacuation Beacon Parts & 7 Questions Overlay */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1.5 pointer-events-none text-xs">
-            <div className="px-3 py-1.5 rounded-xl bg-neutral-900/80 border border-neutral-800 backdrop-blur-md flex items-center gap-2 text-neutral-300">
-              <Radio className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Rescue Parts:</span>
-              <span className={inventory.beaconParts.antenna ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>
-                📡 Antenna
-              </span>
-              <span className={inventory.beaconParts.battery ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>
-                ⚡ Battery
-              </span>
-              <span className={inventory.beaconParts.flare ? 'text-emerald-400 font-bold' : 'text-neutral-600'}>
-                🚨 Flare
-              </span>
-            </div>
-
-            {/* 7 Curriculum Questions Tracker for Level */}
-            <div className="px-3 py-1.5 rounded-xl bg-neutral-900/85 border border-amber-500/30 backdrop-blur-md flex items-center justify-between gap-2 text-neutral-200">
-              <span className="font-bold text-amber-300">Level {currentLevel} Questions:</span>
-              <span className="font-mono-code font-bold text-white">
-                {levelSolvedCount} / 7
-              </span>
-              <div className="w-16 bg-neutral-800 h-2 rounded-full overflow-hidden border border-neutral-700">
-                <div
-                  className="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, (levelSolvedCount / 7) * 100)}%` }}
-                />
+          {/* Critical Low-resource warning alerts */}
+          {stats.health < 25 && (
+            <div className="absolute top-28 left-1/2 -translate-x-1/2 pointer-events-none z-30">
+              <div className="px-4 py-1.5 rounded-xl bg-rose-600/90 text-white font-black text-xs animate-pulse border-2 border-rose-400 backdrop-blur-sm text-center shadow-2xl">
+                ⚠️ CRITICAL HEALTH! Use First Aid [4] immediately!
               </div>
             </div>
-          </div>
-
-          {/* Action Log Banner at Bottom */}
-          <div className="absolute bottom-2 left-3 right-3 pointer-events-none">
-            <div className="px-3 py-1.5 rounded-xl bg-neutral-950/90 border border-neutral-800 backdrop-blur-md text-xs font-mono-code text-neutral-300 flex items-center gap-2">
-              <span className="text-amber-400 font-bold">ℹ️ LOG:</span>
-              <span className="truncate">{recentLog}</span>
+          )}
+          {stats.water < 15 && (
+            <div className="absolute top-36 left-1/2 -translate-x-1/2 pointer-events-none z-30">
+              <div className="px-3 py-1.5 rounded-xl bg-cyan-700/90 text-white font-bold text-xs animate-bounce border border-cyan-400 backdrop-blur-sm shadow-xl">
+                💧 DEHYDRATION — Drink Water [2]!
+              </div>
             </div>
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Quick-Access Hotbar & Inventory Bar */}
-        <div className="w-full max-w-5xl mt-3 flex flex-wrap items-center justify-between gap-2">
+
+      {/* Quick-Access Hotbar & Inventory Bar (Shown only in Desktop Windowed Mode) */}
+      {!isHorizontalGameView && (
+        <div className="w-full max-w-5xl mt-3 flex flex-wrap items-center justify-between gap-2 px-2">
           {/* Quick Item Slots */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Slot 1: Food */}
@@ -2649,7 +3131,7 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
             </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================
           QUIZ MODAL BEFORE COLLECTING REWARDS (MERGED FEATURE)
@@ -3115,6 +3597,15 @@ export const IslandSurvivalGame: React.FC<IslandSurvivalGameProps> = ({
           onClose={() => setShowPromotionModal(false)}
         />
       )}
+
+      {/* Controls Guide Overlay */}
+      {showControlsGuide && (
+        <ControlsGuide
+          isMobileMode={joystickMode}
+          onClose={() => setShowControlsGuide(false)}
+        />
+      )}
     </div>
   );
 };
+
