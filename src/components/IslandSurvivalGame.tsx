@@ -58,6 +58,7 @@ import {
   Coffee,
   Sliders,
   User,
+  X,
 } from 'lucide-react';
 
 interface IslandSurvivalGameProps {
